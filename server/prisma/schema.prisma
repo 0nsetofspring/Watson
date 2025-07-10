@@ -1,0 +1,52 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ▼▼▼▼▼ 이 아래 부분이 데이터 모델을 정의하는 곳입니다. ▼▼▼▼▼
+
+// "회원" 정보를 관리하기 위한 설계도
+model User {
+  id        String    @id @default(cuid()) // 회원의 고유 ID (자동 생성)
+  email     String    @unique             // 이메일 (중복 불가)
+  name      String?                       // 이름 (필수 아님)
+  provider  String                        // 로그인 방식 ("google", "kakao" 등)
+  posts     Post[]                        // 이 회원이 작성한 게시글 목록 (아래 Post 모델과 연결)
+  comments  Comment[]                     // 이 회원이 작성한 댓글 목록 (아래 Comment 모델과 연결)
+}
+
+// "게시글" 정보를 관리하기 위한 설계도
+model Post {
+  id            String    @id @default(cuid())     // 게시글의 고유 ID (자동 생성)
+  title         String                           // 제목
+  content       String?                          // 글 내용 (필수 아님)
+  imageUrl      String?                          // 대표 이미지 주소 (필수 아님)
+  postType      String                           // 글 종류 ("INFO" 또는 "SCENARIO")
+  downloadCount Int       @default(0)              // 다운로드 횟수 (기본값 0)
+  createdAt     DateTime  @default(now())          // 작성 시간 (자동으로 현재 시간 기록)
+
+  author    User      @relation(fields: [authorId], references: [id]) // 작성자 정보 (위 User 모델과 연결)
+  authorId  String                                                  // 작성자 ID
+
+  comments      Comment[]                        // 이 게시글에 달린 댓글 목록
+}
+
+// "댓글" 정보를 관리하기 위한 설계도
+model Comment {
+  id        String   @id @default(cuid()) // 댓글의 고유 ID (자동 생성)
+  content   String                       // 댓글 내용
+  createdAt DateTime @default(now())      // 작성 시간 (자동으로 현재 시간 기록)
+
+  author    User     @relation(fields: [authorId], references: [id]) // 댓글 작성자 정보 (User 모델과 연결)
+  authorId  String
+
+  post      Post     @relation(fields: [postId], references: [id])   // 어떤 게시글에 달린 댓글인지 (Post 모델과 연결)
+  postId    String
+}
