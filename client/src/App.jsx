@@ -1,37 +1,34 @@
-import React, { useState } from 'react';
-import { GoogleLogin } from '@react-oauth/google';
-import axios from 'axios';
+// src/App.jsx
+
+import { Routes, Route } from 'react-router-dom';
+import HomePage from './pages/HomePage';     // MainPage -> HomePage로 이름 변경
+import LoginPage from './pages/LoginPage';
+import PrivateRoute from './components/PrivateRoute'; // PrivateRoute 불러오기
 
 function App() {
-  const [user, setUser] = useState(null);
-
-  const handleLoginSuccess = async (credentialResponse) => {
-    try {
-      // 구글에서 받은 토큰을 서버로 전송
-      const res = await axios.post('http://localhost:3000/api/auth/google', {
-        googleToken: credentialResponse.credential,
-      });
-      setUser(res.data.user); // 로그인 성공 시 사용자 정보 저장
-      localStorage.setItem('accessToken', res.data.accessToken); // 토큰 저장(필요시)
-    } catch (err) {
-      alert('로그인 실패: ' + (err.response?.data?.error || err.message));
-    }
-  };
-
   return (
-    <div>
-      <h1>구글 로그인 테스트</h1>
-      {user ? (
-        <div>
-          <p>환영합니다, {user.nickname}!</p>
-          <p>사용자 ID: {user.id}</p>
-        </div>
-      ) : (
-        <GoogleLogin
-          onSuccess={handleLoginSuccess}
-          onError={() => alert('구글 로그인 실패')}
-        />
-      )}
+    <div className="app-container">
+      <main>
+        <Routes>
+          {/* 1. 기본 경로를 로그인 페이지로 설정 */}
+          <Route path="/login" element={<LoginPage />} />
+          
+          {/* 2. 사용자가 다른 주소로 접근 시, 로그인 안했으면 로그인 페이지로 보냄 */}
+          <Route path="/" element={<PrivateRoute><HomePage/></PrivateRoute>} />
+          
+          {/* 3. 앞으로 만들 모든 페이지는 PrivateRoute로 감싸서 보호 */}
+          <Route
+            path="/home"
+            element={
+              <PrivateRoute>
+                <HomePage/>
+              </PrivateRoute>
+            }
+          />
+          {/* 예: <Route path="/community" element={<PrivateRoute><CommunityPage /></PrivateRoute>} /> */}
+
+        </Routes>
+      </main>
     </div>
   );
 }
