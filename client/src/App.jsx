@@ -1,35 +1,39 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import React, { useState } from 'react';
+import { GoogleLogin } from '@react-oauth/google';
+import axios from 'axios';
 
 function App() {
-  const [count, setCount] = useState(0)
+  const [user, setUser] = useState(null);
+
+  const handleLoginSuccess = async (credentialResponse) => {
+    try {
+      // 구글에서 받은 토큰을 서버로 전송
+      const res = await axios.post('http://localhost:3000/api/auth/google', {
+        googleToken: credentialResponse.credential,
+      });
+      setUser(res.data.user); // 로그인 성공 시 사용자 정보 저장
+      localStorage.setItem('accessToken', res.data.accessToken); // 토큰 저장(필요시)
+    } catch (err) {
+      alert('로그인 실패: ' + (err.response?.data?.error || err.message));
+    }
+  };
 
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.jsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
+    <div>
+      <h1>구글 로그인 테스트</h1>
+      {user ? (
+        <div>
+          <p>환영합니다, {user.nickname}!</p>
+          <p>사용자 ID: {user.id}</p>
+        </div>
+      ) : (
+        <GoogleLogin
+          onSuccess={handleLoginSuccess}
+          onError={() => alert('구글 로그인 실패')}
+        />
+      )}
+    </div>
+  );
 }
 
-export default App
+export default App;
