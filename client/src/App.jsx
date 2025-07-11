@@ -5,6 +5,7 @@ import HomePage from './pages/HomePage';     // MainPage -> HomePage로 이름 �
 import LoginPage from './pages/LoginPage';
 import PrivateRoute from './components/PrivateRoute'; // PrivateRoute 불러오기
 import ScenarioList from './components/ScenarioList';
+import ContinueGame from './components/ContinueGame';
 
 function App() {
   return (
@@ -28,6 +29,12 @@ function App() {
           />
           {/* 예: <Route path="/community" element={<PrivateRoute><CommunityPage /></PrivateRoute>} /> */}
           <Route path="/game/start" element={<ScenarioList />} />
+          <Route path="/game/continue"
+                  element={
+                    <PrivateRoute>
+                      <ContinueGame />
+                    </PrivateRoute>
+                  } />
         </Routes>
       </main>
     </div>

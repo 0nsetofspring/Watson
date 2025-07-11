@@ -5,6 +5,7 @@ const authRouter = require('./routes/auth')
 const { PrismaClient } = require('@prisma/client');
 const cors = require('cors');
 const scenariosRouter = require('./routes/mainTab/scenarios');
+const gameStartRouter = require('./routes/mainTab/gameStart');
 
 const app = express();
 const prisma = new PrismaClient();
@@ -21,6 +22,7 @@ app.use(cors({
 // '/api/auth' 경로로 들어오는 모든 요청을 authRouter가 처리하도록 설정 (주소 분류 담당자를 지정)
 app.use('/api/auth', authRouter);
 app.use('/api/scenarios', scenariosRouter); // '/api/scenarios' 경로로 오는 요청을 scenariosRouter가 처리
+app.use('/api/playthroughs', gameStartRouter);
 
 // 서버 실행
 app.listen(PORT, () => {

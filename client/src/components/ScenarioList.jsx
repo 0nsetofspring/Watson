@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { getScenariosApi } from '../api/scenarios';
+import { startGameApi } from '../api/game';
 
 const ScenarioList = () => {
   const { token } = useAuth();
@@ -33,15 +34,21 @@ const ScenarioList = () => {
   if (error) return <p>에러: {error}</p>;
 
   if (scenarios.length === 0) {
-    // 팝업으로 알림
     window.alert('시나리오가 없습니다');
     return <p>시나리오가 없습니다</p>;
   }
 
-  const handleScenarioClick = (scenarioId) => {
-    // TODO: 여기서 API-03 (새로운 게임 시작)을 호출하고,
-    // 성공하면 게임 페이지로 이동하는 로직을 추가합니다.
-    alert(`시나리오 ${scenarioId}를 선택했습니다!`);
+  const handleScenarioClick = async (scenarioId) => {
+    try {
+      const { playthroughId } = await startGameApi(scenarioId, token);
+      console.log(`새로운 게임이 시작되었습니다. Playthrough ID: ${playthroughId}`);
+      alert(`새로운 게임(ID: ${playthroughId})을 시작합니다!`);
+      // TODO: 실제 게임 페이지로 이동하는 로직 추가
+      // 예: navigate(`/game/${playthroughId}`);
+    } catch (err) {
+      console.error('게임 시작 API 호출 중 에러:', err);
+      alert(err.message);
+    }
   };
 
   return (
