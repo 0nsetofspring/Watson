@@ -30,10 +30,11 @@ model UserEnding {
 }
 
 model Scenario {
-  id               Int           @id @default(autoincrement())
+  id               Int      @id @default(autoincrement())
   title            String
   settingPrompt    String
   backgroundScript String
+  imageUrl         String   // webp 등 이미지 URL 또는 파일 경로 (필수)
   endings          Ending[]
   npcs             Npc[]
   playthroughs     Playthrough[]
@@ -45,6 +46,7 @@ model Npc {
   settingPrompt String
   scenarioId    Int
   scenario      Scenario @relation(fields: [scenarioId], references: [id])
+  chatLogs      ChatLog[]
 }
 
 model Ending {
@@ -75,6 +77,8 @@ model ChatLog {
   createdAt     DateTime    @default(now())
   playthroughId Int
   playthrough   Playthrough @relation(fields: [playthroughId], references: [id])
+  npcId         Int?        // 어떤 NPC가 보낸 메시지인지 (nullable)
+  npc           Npc?        @relation(fields: [npcId], references: [id])
 }
 
 model Post {
