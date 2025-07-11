@@ -4,6 +4,7 @@ import { Routes, Route } from 'react-router-dom';
 import HomePage from './pages/HomePage';     // MainPage -> HomePage로 이름 변경
 import LoginPage from './pages/LoginPage';
 import PrivateRoute from './components/PrivateRoute'; // PrivateRoute 불러오기
+import ScenarioList from './components/ScenarioList';
 
 function App() {
   return (
@@ -26,7 +27,7 @@ function App() {
             }
           />
           {/* 예: <Route path="/community" element={<PrivateRoute><CommunityPage /></PrivateRoute>} /> */}
-
+          <Route path="/game/start" element={<ScenarioList />} />
         </Routes>
       </main>
     </div>
