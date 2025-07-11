@@ -18,7 +18,9 @@ const GoogleLoginButton = () => {
       const data = await loginWithGoogleApi(credentialResponse.credential);
       
       login(data.user, data.accessToken);
-      navigate('/home');
+      if (onLoginSuccess) {
+        onLoginSuccess();
+      }
     } catch (error) {
       console.error('로그인 처리 중 에러 발생:', error);
       alert(error.message);

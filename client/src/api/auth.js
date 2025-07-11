@@ -1,5 +1,5 @@
 // src/api/auth.js
-const API_BASE_URL = 'http://localhost:3000'; // 백엔드 서버 주소
+const API_BASE_URL = 'http://localhost:3000';
 
 export const loginWithGoogleApi = async (googleAccessToken) => {
   const response = await fetch(`${API_BASE_URL}/api/auth/google`, {
