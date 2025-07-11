@@ -10,43 +10,127 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// ▼▼▼▼▼ 이 아래 부분이 데이터 모델을 정의하는 곳입니다. ▼▼▼▼▼
-
-// "회원" 정보를 관리하기 위한 설계도
+// ## 유저 관련 모델 ##
 model User {
-  id        String    @id @default(cuid()) // 회원의 고유 ID (자동 생성)
-  email     String    @unique             // 이메일 (중복 불가)
-  name      String?                       // 이름 (필수 아님)
-  provider  String                        // 로그인 방식 ("google", "kakao" 등)
-  posts     Post[]                        // 이 회원이 작성한 게시글 목록 (아래 Post 모델과 연결)
-  comments  Comment[]                     // 이 회원이 작성한 댓글 목록 (아래 Comment 모델과 연결)
+  id        Int      @id @default(autoincrement())
+  nickname  String   @unique
+  email     String   @unique
+  createdAt DateTime @default(now())
+
+  // 유저와 다른 모델과의 관계 설정
+  playthroughs  Playthrough[]
+  posts         Post[]
+  comments      Comment[]
+  likes         Like[]
+  achievedEndings UserEnding[]
 }
 
-// "게시글" 정보를 관리하기 위한 설계도
+model UserEnding {
+  unlockedAt DateTime @default(now())
+
+  // User와 Ending의 중간 테이블 (N:M 관계)
+  user      User   @relation(fields: [userId], references: [id])
+  userId    Int
+  ending    Ending @relation(fields: [endingId], references: [id])
+  endingId  Int
+
+  @@id([userId, endingId]) // 두 ID를 묶어 고유 키로 사용
+}
+
+
+// ## 게임 플레이 관련 모델 ##
+model Scenario {
+  id            Int      @id @default(autoincrement())
+  title         String
+  settingPrompt String
+
+  // 시나리오와 다른 모델과의 관계 설정
+  npcs          Npc[]
+  endings       Ending[]
+  playthroughs  Playthrough[]
+}
+
+model Npc {
+  id            Int      @id @default(autoincrement())
+  name          String
+  settingPrompt String
+
+  // Npc와 Scenario의 관계 설정 (N:1)
+  scenario   Scenario @relation(fields: [scenarioId], references: [id])
+  scenarioId Int
+}
+
+model Ending {
+  id          Int      @id @default(autoincrement())
+  name        String
+  description String
+
+  // Ending과 Scenario의 관계 설정 (N:1)
+  scenario   Scenario @relation(fields: [scenarioId], references: [id])
+  scenarioId Int
+
+  // Ending과 User의 관계 설정
+  achievedByUsers UserEnding[]
+}
+
+model Playthrough {
+  id        Int      @id @default(autoincrement())
+  status    String   // "in_progress", "completed" 등
+  createdAt DateTime @default(now())
+
+  // Playthrough와 다른 모델과의 관계 설정
+  user      User     @relation(fields: [userId], references: [id])
+  userId    Int
+  scenario  Scenario @relation(fields: [scenarioId], references: [id])
+  scenarioId Int
+  chatLogs  ChatLog[]
+}
+
+model ChatLog {
+  id              Int      @id @default(autoincrement())
+  isUserMessage   Boolean
+  messageText     String
+  isHighlighted   Boolean  @default(false)
+  createdAt       DateTime @default(now())
+
+  // ChatLog와 Playthrough의 관계 설정 (N:1)
+  playthrough   Playthrough @relation(fields: [playthroughId], references: [id])
+  playthroughId Int
+}
+
+
+// ## 커뮤니티 관련 모델 ##
 model Post {
-  id            String    @id @default(cuid())     // 게시글의 고유 ID (자동 생성)
-  title         String                           // 제목
-  content       String?                          // 글 내용 (필수 아님)
-  imageUrl      String?                          // 대표 이미지 주소 (필수 아님)
-  postType      String                           // 글 종류 ("INFO" 또는 "SCENARIO")
-  downloadCount Int       @default(0)              // 다운로드 횟수 (기본값 0)
-  createdAt     DateTime  @default(now())          // 작성 시간 (자동으로 현재 시간 기록)
+  id        Int      @id @default(autoincrement())
+  title     String
+  content   String
+  createdAt DateTime @default(now())
 
-  author    User      @relation(fields: [authorId], references: [id]) // 작성자 정보 (위 User 모델과 연결)
-  authorId  String                                                  // 작성자 ID
-
-  comments      Comment[]                        // 이 게시글에 달린 댓글 목록
+  // Post와 다른 모델과의 관계 설정
+  author    User      @relation(fields: [authorId], references: [id])
+  authorId  Int
+  comments  Comment[]
+  likes     Like[]
 }
 
-// "댓글" 정보를 관리하기 위한 설계도
 model Comment {
-  id        String   @id @default(cuid()) // 댓글의 고유 ID (자동 생성)
-  content   String                       // 댓글 내용
-  createdAt DateTime @default(now())      // 작성 시간 (자동으로 현재 시간 기록)
+  id        Int      @id @default(autoincrement())
+  content   String
+  createdAt DateTime @default(now())
 
-  author    User     @relation(fields: [authorId], references: [id]) // 댓글 작성자 정보 (User 모델과 연결)
-  authorId  String
+  // Comment와 다른 모델과의 관계 설정
+  author   User @relation(fields: [authorId], references: [id])
+  authorId Int
+  post     Post @relation(fields: [postId], references: [id])
+  postId   Int
+}
 
-  post      Post     @relation(fields: [postId], references: [id])   // 어떤 게시글에 달린 댓글인지 (Post 모델과 연결)
-  postId    String
+model Like {
+  // Like와 다른 모델과의 관계 설정
+  user   User @relation(fields: [userId], references: [id])
+  userId Int
+  post   Post @relation(fields: [postId], references: [id])
+  postId Int
+
+  @@id([userId, postId]) // 두 ID를 묶어 고유 키로 사용
 }
