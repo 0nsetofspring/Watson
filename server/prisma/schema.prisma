@@ -1,6 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -10,127 +7,102 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// ## 유저 관련 모델 ##
 model User {
-  id        Int      @id @default(autoincrement())
-  nickname  String   @unique
-  email     String   @unique
-  createdAt DateTime @default(now())
-
-  // 유저와 다른 모델과의 관계 설정
-  playthroughs  Playthrough[]
-  posts         Post[]
-  comments      Comment[]
-  likes         Like[]
+  email           String        @unique
+  createdAt       DateTime      @default(now())
+  nickname        String        @unique
+  id              Int           @id @default(autoincrement())
+  comments        Comment[]
+  likes           Like[]
+  playthroughs    Playthrough[]
+  posts           Post[]
   achievedEndings UserEnding[]
 }
 
 model UserEnding {
   unlockedAt DateTime @default(now())
+  userId     Int
+  endingId   Int
+  ending     Ending   @relation(fields: [endingId], references: [id])
+  user       User     @relation(fields: [userId], references: [id])
 
-  // User와 Ending의 중간 테이블 (N:M 관계)
-  user      User   @relation(fields: [userId], references: [id])
-  userId    Int
-  ending    Ending @relation(fields: [endingId], references: [id])
-  endingId  Int
-
-  @@id([userId, endingId]) // 두 ID를 묶어 고유 키로 사용
+  @@id([userId, endingId])
 }
 
-
-// ## 게임 플레이 관련 모델 ##
 model Scenario {
-  id            Int      @id @default(autoincrement())
-  title         String
-  settingPrompt String
-
-  // 시나리오와 다른 모델과의 관계 설정
-  npcs          Npc[]
-  endings       Ending[]
-  playthroughs  Playthrough[]
+  id               Int           @id @default(autoincrement())
+  title            String
+  settingPrompt    String
+  backgroundScript String
+  endings          Ending[]
+  npcs             Npc[]
+  playthroughs     Playthrough[]
 }
 
 model Npc {
   id            Int      @id @default(autoincrement())
   name          String
   settingPrompt String
-
-  // Npc와 Scenario의 관계 설정 (N:1)
-  scenario   Scenario @relation(fields: [scenarioId], references: [id])
-  scenarioId Int
+  scenarioId    Int
+  scenario      Scenario @relation(fields: [scenarioId], references: [id])
 }
 
 model Ending {
-  id          Int      @id @default(autoincrement())
-  name        String
-  description String
-
-  // Ending과 Scenario의 관계 설정 (N:1)
-  scenario   Scenario @relation(fields: [scenarioId], references: [id])
-  scenarioId Int
-
-  // Ending과 User의 관계 설정
+  id              Int          @id @default(autoincrement())
+  name            String
+  description     String
+  scenarioId      Int
+  scenario        Scenario     @relation(fields: [scenarioId], references: [id])
   achievedByUsers UserEnding[]
 }
 
 model Playthrough {
-  id        Int      @id @default(autoincrement())
-  status    String   // "in_progress", "completed" 등
-  createdAt DateTime @default(now())
-
-  // Playthrough와 다른 모델과의 관계 설정
-  user      User     @relation(fields: [userId], references: [id])
-  userId    Int
-  scenario  Scenario @relation(fields: [scenarioId], references: [id])
+  id         Int       @id @default(autoincrement())
+  status     String
+  createdAt  DateTime  @default(now())
+  userId     Int
   scenarioId Int
-  chatLogs  ChatLog[]
+  chatLogs   ChatLog[]
+  scenario   Scenario  @relation(fields: [scenarioId], references: [id])
+  user       User      @relation(fields: [userId], references: [id])
 }
 
 model ChatLog {
-  id              Int      @id @default(autoincrement())
-  isUserMessage   Boolean
-  messageText     String
-  isHighlighted   Boolean  @default(false)
-  createdAt       DateTime @default(now())
-
-  // ChatLog와 Playthrough의 관계 설정 (N:1)
-  playthrough   Playthrough @relation(fields: [playthroughId], references: [id])
+  id            Int         @id @default(autoincrement())
+  isUserMessage Boolean
+  messageText   String
+  isHighlighted Boolean     @default(false)
+  createdAt     DateTime    @default(now())
   playthroughId Int
+  playthrough   Playthrough @relation(fields: [playthroughId], references: [id])
 }
 
-
-// ## 커뮤니티 관련 모델 ##
 model Post {
-  id        Int      @id @default(autoincrement())
   title     String
   content   String
-  createdAt DateTime @default(now())
-
-  // Post와 다른 모델과의 관계 설정
-  author    User      @relation(fields: [authorId], references: [id])
+  createdAt DateTime  @default(now())
+  id        Int       @id @default(autoincrement())
   authorId  Int
   comments  Comment[]
   likes     Like[]
+  author    User      @relation(fields: [authorId], references: [id])
 }
 
 model Comment {
-  id        Int      @id @default(autoincrement())
   content   String
   createdAt DateTime @default(now())
-
-  // Comment와 다른 모델과의 관계 설정
-  author   User @relation(fields: [authorId], references: [id])
-  authorId Int
-  post     Post @relation(fields: [postId], references: [id])
-  postId   Int
+  id        Int      @id @default(autoincrement())
+  authorId  Int
+  postId    Int
+  author    User     @relation(fields: [authorId], references: [id])
+  post      Post     @relation(fields: [postId], references: [id])
 }
 
 model Like {
-  // Like와 다른 모델과의 관계 설정
-  user   User @relation(fields: [userId], references: [id])
   userId Int
-  post   Post @relation(fields: [postId], references: [id])
   postId Int
+  post   Post @relation(fields: [postId], references: [id])
+  user   User @relation(fields: [userId], references: [id])
 
-  @@id([userId, postId]) // 두 ID를 묶어 고유 키로 사용
+  @@id([userId, postId])
 }
