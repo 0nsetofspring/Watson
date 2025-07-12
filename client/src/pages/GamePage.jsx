@@ -76,6 +76,20 @@ const paperPlateSlideDown = keyframes`
   }
 `;
 
+
+
+// 배경 확장 및 페이드아웃 애니메이션 (통합)
+const backgroundExpansionFadeOut = keyframes`
+  from {
+    transform: scale(1);
+    opacity: 1;
+  }
+  to {
+    transform: scale(4);
+    opacity: 0;
+  }
+`;
+
 // 게임 페이지 컨테이너 - 검은 배경
 const GamePageContainer = styled.div`
   width: 100vw;
@@ -101,6 +115,7 @@ const BackgroundImage = styled.div`
   background-position: center;
   opacity: 0;
   z-index: 1;
+  transform-origin: 85% 50%; /* 오른쪽 중앙에서 확장 */
   
   ${props => props.$stage === 'initial' && css`
     animation: ${backgroundFadeInLow} 2s ease-out forwards;
@@ -109,6 +124,10 @@ const BackgroundImage = styled.div`
   
   ${props => props.$stage === 'normal' && css`
     animation: ${backgroundFadeToNormal} 1.5s ease-out forwards;
+  `}
+  
+  ${props => props.$stage === 'expansion' && css`
+    animation: ${backgroundExpansionFadeOut} 3s ease forwards;
   `}
 `;
 
@@ -366,7 +385,7 @@ const GamePage = () => {
   const [gameData, setGameData] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [animationStage, setAnimationStage] = useState('initial'); // 'initial', 'titleVisible', 'titleFadeOut', 'prologueStart', 'prologueVisible', 'prologueEnd', 'gameReady'
+  const [animationStage, setAnimationStage] = useState('initial'); // 'initial', 'titleVisible', 'titleFadeOut', 'prologueStart', 'prologueVisible', 'prologueEnd', 'expansion', 'gameReady'
 
   useEffect(() => {
     const fetchGameData = async () => {
@@ -418,10 +437,15 @@ const GamePage = () => {
   const handleFinishPrologue = () => {
     setAnimationStage('prologueEnd');
     
-    // 1초 후 게임 준비 완료
+    // 1초 후 배경 확장 및 페이드아웃 시작
+    setTimeout(() => {
+      setAnimationStage('expansion');
+    }, 1000);
+    
+    // 4초 후 게임 준비 완료
     setTimeout(() => {
       setAnimationStage('gameReady');
-    }, 1000);
+    }, 4000);
   };
 
   if (isLoading) {
@@ -445,7 +469,10 @@ const GamePage = () => {
   return (
     <GamePageContainer>
       <BackgroundImage 
-        $stage={animationStage === 'titleVisible' ? 'initial' : 'normal'}
+        $stage={
+          animationStage === 'titleVisible' ? 'initial' : 
+          animationStage === 'expansion' ? 'expansion' : 'normal'
+        }
       />
       {gameData && (
         <>
@@ -458,7 +485,7 @@ const GamePage = () => {
             {gameData.scenarioTitle}
           </ScenarioTitle>
           
-          {(animationStage === 'prologueStart' || animationStage === 'prologueVisible') && (
+          {(animationStage === 'prologueStart' || animationStage === 'prologueVisible' || animationStage === 'prologueEnd') && (
             <PaperPlateContainer
               $stage={animationStage === 'prologueEnd' ? 'slideDown' : 'slideUp'}
             >
