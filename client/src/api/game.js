@@ -19,3 +19,20 @@ export const startGameApi = async (scenarioId, token) => {
 
   return response.json(); // { playthroughId } 객체 반환
 };
+
+// 특정 playthroughId로 게임 정보 가져오기
+export const getPlaythroughApi = async (playthroughId, token) => {
+  const response = await fetch(`${API_BASE_URL}/api/playthroughs/${playthroughId}`, {
+    method: 'GET',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData.error || '게임 정보를 가져오는 데 실패했습니다.');
+  }
+
+  return response.json();
+};
