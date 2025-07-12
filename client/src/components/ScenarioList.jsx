@@ -3,12 +3,14 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { getScenariosApi } from '../api/scenarios';
 import { startGameApi } from '../api/game';
+import { useNavigate } from 'react-router-dom';
 
 const ScenarioList = () => {
   const { token } = useAuth();
   const [scenarios, setScenarios] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     // 컴포넌트가 처음 렌더링될 때 시나리오 목록을 불러옵니다.
@@ -41,12 +43,9 @@ const ScenarioList = () => {
   const handleScenarioClick = async (scenarioId) => {
     try {
       const { playthroughId } = await startGameApi(scenarioId, token);
-      console.log(`새로운 게임이 시작되었습니다. Playthrough ID: ${playthroughId}`);
-      alert(`새로운 게임(ID: ${playthroughId})을 시작합니다!`);
-      // TODO: 실제 게임 페이지로 이동하는 로직 추가
-      // 예: navigate(`/game/${playthroughId}`);
+      // 게임 시작 후 바로 채팅창(게임 플레이 화면)으로 이동
+      navigate(`/game/play/${playthroughId}`);
     } catch (err) {
-      console.error('게임 시작 API 호출 중 에러:', err);
       alert(err.message);
     }
   };
