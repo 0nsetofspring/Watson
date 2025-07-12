@@ -1,6 +1,6 @@
 const jwt = require('jsonwebtoken');
 const { PrismaClient } = require('@prisma/client');
-import prisma from '../../lib/prisma';
+const prisma = require('../lib/prisma');
 
 const { JWT_SECRET } = process.env;
 

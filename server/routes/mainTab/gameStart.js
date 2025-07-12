@@ -1,7 +1,7 @@
 const express = require('express');
 const { PrismaClient } = require('@prisma/client');
 const isLoggedIn = require('../isLoggedIn'); // 로그인 미들웨어
-import prisma from '../../lib/prisma';
+const prisma = require('../../lib/prisma');
 
 const router = express.Router();
 
