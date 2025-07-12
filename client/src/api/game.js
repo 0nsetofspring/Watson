@@ -42,7 +42,7 @@ export const sendChatMessage = async (playthroughId, message, token) => {
     throw new Error(data.error || '채팅 메시지 전송 실패');
   }
   return data; // { messageText, ... }
-
+}
 // 특정 playthroughId로 게임 정보 가져오기
 export const getPlaythroughApi = async (playthroughId, token) => {
   const response = await fetch(`${API_BASE_URL}/api/playthroughs/${playthroughId}`, {
