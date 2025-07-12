@@ -6,7 +6,7 @@ import LoginPage from './pages/LoginPage';
 import PrivateRoute from './components/PrivateRoute'; // PrivateRoute 불러오기
 import ScenarioList from './components/ScenarioList';
 import ContinueGame from './components/ContinueGame';
-import GamePlayPage from './pages/GamePlayPage';
+import GamePage from './pages/GamePage';
 
 function App() {
   return (
@@ -63,7 +63,7 @@ function App() {
                       <ContinueGame />
                     </PrivateRoute>
                   } />
-          <Route path="/game/play/:playthroughId" element={<GamePlayPage />} />
+          <Route path="/game/play/:playthroughId" element={<GamePage />} />
         </Routes>
       </main>
     </div>
