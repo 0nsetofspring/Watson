@@ -7,6 +7,7 @@ import { AuthProvider } from './context/AuthContext.jsx';
 import '@mantine/core/styles.css';
 import { MantineProvider } from '@mantine/core'; // 2. MantineProvider를 여기서 불러옵니다.
 import App from './App.jsx';
+import './index.css';
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
