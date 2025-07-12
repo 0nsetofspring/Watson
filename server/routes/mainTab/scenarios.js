@@ -1,9 +1,9 @@
 const express = require('express');
 const { PrismaClient } = require('@prisma/client');
 const isLoggedIn = require('../isLoggedIn'); // 방금 만든 로그인 확인 미들웨어
+import prisma from '../../lib/prisma';
 
 const router = express.Router();
-const prisma = new PrismaClient();
 
 /**
  * @description GET /api/scenarios - 모든 시나리오 목록 조회 (새 게임)
