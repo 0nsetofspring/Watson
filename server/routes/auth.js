@@ -4,9 +4,9 @@ const express = require('express');
 const jwt = require('jsonwebtoken');
 const { PrismaClient } = require('@prisma/client');
 const { OAuth2Client } = require('google-auth-library'); // 구글 인증 라이브러리
+import prisma from '../../lib/prisma';
 
 const router = express.Router();
-const prisma = new PrismaClient();
 
 const { GOOGLE_CLIENT_ID, JWT_SECRET } = process.env;
 
