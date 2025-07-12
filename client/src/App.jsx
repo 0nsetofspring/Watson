@@ -1,13 +1,12 @@
 // --- 필요한 컴포넌트들을 먼저 import 합니다 ---
 import { Routes, Route } from 'react-router-dom';
-import LoginPage from './pages/LoginPage'; // 로그인 페이지
-import HomePage from './pages/HomePage'; // 홈페이지
-import GamePage from './pages/GamePage'; // 새로 만든 게임 페이지!
-import ContinueGame from './components/ContinueGame'; // 이어하기 페이지
-import PrivateRoute from './components/PrivateRoute'; // 인증 보호 컴포넌트
-// ScenarioList는 HomePage 내에서 사용되므로 여기서는 직접 import할 필요가 없을 수 있습니다.
-// 만약 /game/start 경로를 독립적으로 사용한다면 import 해야 합니다.
-import ScenarioList from './components/ScenarioList'; 
+
+import HomePage from './pages/HomePage';     // MainPage -> HomePage로 이름 변경
+import LoginPage from './pages/LoginPage';
+import PrivateRoute from './components/PrivateRoute'; // PrivateRoute 불러오기
+import ScenarioList from './components/ScenarioList';
+import ContinueGame from './components/ContinueGame';
+import GamePage from './pages/GamePage';
 
 function App() {
   return (
@@ -57,7 +56,14 @@ function App() {
 
           {/* 4. 앞으로 만들 다른 페이지들도 PrivateRoute로 감싸서 보호합니다. */}
           {/* 예: <Route path="/community" element={<PrivateRoute><CommunityPage /></PrivateRoute>} /> */}
-
+          <Route path="/game/start" element={<ScenarioList />} />
+          <Route path="/game/continue"
+                  element={
+                    <PrivateRoute>
+                      <ContinueGame />
+                    </PrivateRoute>
+                  } />
+          <Route path="/game/play/:playthroughId" element={<GamePage />} />
         </Routes>
       </main>
     </div>

@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { getPlaythroughApi } from '../api/game';
 import styled, { keyframes, css } from 'styled-components';
+import ChatBox from '../components/ChatBox'; // ChatBox import
 
 // 배경 이미지 import
 import gameBackground from '../assets/images/game_background.png';
@@ -408,10 +409,7 @@ const GamePage = () => {
 
   useEffect(() => {
     if (!isLoading && gameData && !error) {
-      // 게임 데이터가 로드되면 애니메이션 시작
       setAnimationStage('titleVisible');
-      
-      // 3초 후 타이틀 페이드아웃 시작
       const titleTimer = setTimeout(() => {
         setAnimationStage('titleFadeOut');
       }, 3000);
@@ -425,7 +423,6 @@ const GamePage = () => {
       const prologueVisibleTimer = setTimeout(() => {
         setAnimationStage('prologueVisible');
       }, 5500);
-
       return () => {
         clearTimeout(titleTimer);
         clearTimeout(prologueStartTimer);
@@ -518,6 +515,10 @@ const GamePage = () => {
             </PaperPlateContainer>
           )}
         </>
+      )}
+      {/* 애니메이션이 끝나고 게임 준비가 완료되면 채팅창을 보여줌 */}
+      {animationStage === 'gameReady' && (
+        <ChatBox playthroughId={playthroughId} />
       )}
     </GamePageContainer>
   );
