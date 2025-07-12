@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { getScenariosApi } from '../api/scenarios';
 import { startGameApi } from '../api/game';
+import { useNavigate } from 'react-router-dom';
 import styled, { keyframes } from 'styled-components';
 
 const ListContainer = styled.div`
@@ -32,6 +33,7 @@ const ScenarioList = ({ onBack, onScenarioSelect }) => {
   const [scenarios, setScenarios] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     // 컴포넌트가 처음 렌더링될 때 시나리오 목록을 불러옵니다.
@@ -56,10 +58,11 @@ const ScenarioList = ({ onBack, onScenarioSelect }) => {
     try {
       // API-03 호출: 새로운 게임 시작
       const { playthroughId } = await startGameApi(scenarioId, token);
+      // 게임 시작 후 바로 채팅창(게임 플레이 화면)으로 이동
+      // navigate(`/game/play/${playthroughId}`);
       console.log(`새로운 게임이 시작되었습니다. Playthrough ID: ${playthroughId}`);
       onScenarioSelect(playthroughId); 
     } catch (err) {
-      console.error('게임 시작 API 호출 중 에러:', err);
       alert(err.message);
     }
   };
