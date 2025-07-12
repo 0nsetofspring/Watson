@@ -63,4 +63,37 @@ router.get('/active', isLoggedIn, async (req, res) => {
   }
 });
 
+// 특정 playthroughId로 게임 정보 가져오기
+router.get('/:playthroughId', isLoggedIn, async (req, res) => {
+  const { playthroughId } = req.params;
+  const userId = req.user.id;
+  
+  try {
+    const playthrough = await prisma.playthrough.findFirst({
+      where: {
+        id: Number(playthroughId),
+        userId: userId, // 본인의 게임만 접근 가능
+      },
+      include: {
+        scenario: { select: { title: true } }
+      }
+    });
+    
+    if (!playthrough) {
+      return res.status(404).json({ error: '게임을 찾을 수 없습니다.' });
+    }
+    
+    res.json({
+      playthroughId: playthrough.id,
+      scenarioId: playthrough.scenarioId,
+      scenarioTitle: playthrough.scenario.title,
+      status: playthrough.status,
+      createdAt: playthrough.createdAt
+    });
+  } catch (error) {
+    console.error('게임 정보 조회 중 오류:', error);
+    res.status(500).json({ error: '게임 정보를 불러오는 중 오류가 발생했습니다.' });
+  }
+});
+
 module.exports = router;
