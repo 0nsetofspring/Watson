@@ -76,7 +76,12 @@ router.get('/:playthroughId', isLoggedIn, async (req, res) => {
         userId: userId, // 본인의 게임만 접근 가능
       },
       include: {
-        scenario: { select: { title: true } }
+        scenario: { 
+          select: { 
+            title: true, 
+            backgroundScript: true 
+          } 
+        }
       }
     });
     
@@ -88,6 +93,7 @@ router.get('/:playthroughId', isLoggedIn, async (req, res) => {
       playthroughId: playthrough.id,
       scenarioId: playthrough.scenarioId,
       scenarioTitle: playthrough.scenario.title,
+      backgroundScript: playthrough.scenario.backgroundScript,
       status: playthrough.status,
       createdAt: playthrough.createdAt
     });
