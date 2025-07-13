@@ -69,9 +69,16 @@ const GameTitle = styled.h2`
   text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
 `;
 
+// 메인 콘텐츠 영역 (게임 화면 + 채팅 영역)
+const MainContent = styled.div`
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+`;
+
 // 메인 게임 화면 (배경 + 클릭 가능한 요소들)
 const GameScreen = styled.div`
-  flex: 1;
+  flex: 0 0 65%;
   position: relative;
   background-image: url(${props => props.$backgroundImage || gameBackground});
   background-size: cover;
@@ -139,13 +146,15 @@ const ElementLabel = styled.div`
   }
 `;
 
-// 하단 채팅 인터페이스 영역
+// 우측 채팅 인터페이스 영역
 const ChatArea = styled.div`
-  height: 300px;
+  flex: 1;
   background: rgba(0, 0, 0, 0.9);
-  border-top: 3px solid #34495e;
+  border-left: 3px solid #34495e;
   position: relative;
   z-index: 100;
+  display: flex;
+  flex-direction: column;
 `;
 
 // 로딩 및 에러 처리
@@ -300,31 +309,34 @@ const GamePage = () => {
         </NavButtonGroup>
       </TopNavBar>
 
-      {/* 메인 게임 화면 */}
-      <GameScreen $backgroundImage={currentBackground}>
-        <InteractiveLayer>
-          {interactiveElements.map(element => (
-            <InteractiveElement
-              key={element.id}
-              $x={element.x}
-              $y={element.y}
-              $width={element.width}
-              $height={element.height}
-              onClick={() => handleElementClick(element)}
-            >
-              {element.icon}
-              <ElementLabel>{element.label}</ElementLabel>
-            </InteractiveElement>
-          ))}
-        </InteractiveLayer>
-      </GameScreen>
+      {/* 메인 콘텐츠 영역 */}
+      <MainContent>
+        {/* 메인 게임 화면 */}
+        <GameScreen $backgroundImage={currentBackground}>
+          <InteractiveLayer>
+            {interactiveElements.map(element => (
+              <InteractiveElement
+                key={element.id}
+                $x={element.x}
+                $y={element.y}
+                $width={element.width}
+                $height={element.height}
+                onClick={() => handleElementClick(element)}
+              >
+                {element.icon}
+                <ElementLabel>{element.label}</ElementLabel>
+              </InteractiveElement>
+            ))}
+          </InteractiveLayer>
+        </GameScreen>
 
-      {/* 하단 채팅 인터페이스 */}
-      <ChatArea>
-        <ChatBox 
-          playthroughId={playthroughId}
-        />
-      </ChatArea>
+        {/* 우측 채팅 인터페이스 */}
+        <ChatArea>
+          <ChatBox 
+            playthroughId={playthroughId}
+          />
+        </ChatArea>
+      </MainContent>
     </GamePageContainer>
   );
 };
