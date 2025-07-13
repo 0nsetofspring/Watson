@@ -1,8 +1,8 @@
 // server/routes/chats.js
 
 const express = require('express');
-const isLoggedIn = require('./isLoggedIn');
-const prisma = require('../lib/prisma');
+const isLoggedIn = require('../isLoggedIn');
+const prisma = require('../../lib/prisma');
 const { VertexAI } = require('@google-cloud/vertexai');
 
 const vertex_ai = new VertexAI({
@@ -34,13 +34,13 @@ router.post('/:playthroughId/chats', isLoggedIn, async (req, res) => {
   try {
     const playthrough = await prisma.playthrough.findFirst({
       where: { id: Number(playthroughId), userId: userId },
-      include: { scenario: { include: { npcs: true } } },
+      include: { scenario: {include : {rooms: { include: { npcs: true } } } } },
     });
 
     if (!playthrough) {
       return res.status(404).json({ error: '진행 중인 게임을 찾을 수 없습니다.' });
     }
-    const currentNpc = playthrough.scenario.npcs[0];
+    const currentNpc = playthrough.scenario.rooms[0].npcs[0];
     if (!currentNpc) {
       return res.status(404).json({ error: '대화할 NPC를 찾을 수 없습니다.' });
     }
@@ -140,5 +140,47 @@ router.get('/:playthroughId/chats', isLoggedIn, async (req, res) => {
   }
 });
 
+// 하이라이트된 채팅 기록만 불러오기
+router.get('/:playthroughId/chats/highlighted', isLoggedIn, async (req, res) => {
+  const { playthroughId } = req.params;
+  const userId = req.user.id;
+
+  try {
+    const playthrough = await prisma.playthrough.findFirst({
+      where: {
+        id: Number(playthroughId),
+        userId: userId,
+      },
+    });
+
+    if (!playthrough) {
+      return res.status(404).json({ error: '해당 게임을 찾을 수 없거나 접근 권한이 없습니다.' });
+    }
+
+    const highlightedChatHistory = await prisma.chatLog.findMany({
+      where: {
+        playthroughId: Number(playthroughId),
+        isHighlighted: true, // 
+      },
+      orderBy: {
+        createdAt: 'asc',
+      },
+
+      select: {
+        id: true,
+        isUserMessage: true,
+        messageText: true,
+        isHighlighted: true,
+        createdAt: true,
+      },
+    });
+
+    res.status(200).json(highlightedChatHistory);
+
+  } catch (error) {
+    console.error('하이라이트된 채팅 기록 조회 중 오류:', error);
+    res.status(500).json({ error: '하이라이트된 채팅 기록을 불러오는 중 서버 오류가 발생했습니다.' });
+  }
+});
 
 module.exports = router;
