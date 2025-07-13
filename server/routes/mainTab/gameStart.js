@@ -35,7 +35,7 @@ router.post('/', isLoggedIn, async (req, res) => {
         status: 'IN_PROGRESS',
         userId: userId,
         scenarioId: Number(scenarioId),
-        playTimeInSecond: 0,
+        playTimeInSeconds: 0,
       },
     });
 

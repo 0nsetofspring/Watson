@@ -57,16 +57,26 @@ router.post('/:playthroughId/chats', isLoggedIn, async (req, res) => {
       orderBy: { createdAt: 'asc' },
     });
 
+    const chatHistoryForGemini = [
+      // NPC의 역할(설정 프롬프트)을 대화 기록의 가장 앞에 시스템 메시지로 추가
+      {
+        role: "model",
+        parts: [{ text: `You are a character in a mystery game. Your role is defined by the following prompt: ${currentNpc.settingPrompt}` }],
+      },
+      // 2. DB에서 가져온 기존 대화 기록을 Gemini가 이해하는 형식으로 변환합니다.
+      ...history.map(log => ({
+          role: log.isUserMessage ? "user" : "model",
+          parts: [{ text: log.messageText }],
+      }))
+    ];
+
+    // 3. 재구성된 대화 기록으로 채팅을 시작합니다.
     const chat = generativeModel.startChat({
-        history: history.map(log => ({
-            role: log.isUserMessage ? "user" : "model",
-            parts: [{ text: log.messageText }],
-        })),
+        history: chatHistoryForGemini,
     });
 
     const result = await chat.sendMessage(message);
     const llmResponse = result.response;
-
     const llmMessageText = llmResponse.candidates[0].content.parts[0].text;
 
     const newNpcMessage = await prisma.chatLog.create({
