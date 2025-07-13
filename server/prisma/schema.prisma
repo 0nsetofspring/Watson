@@ -75,6 +75,8 @@ model Npc {
   id            Int      @id @default(autoincrement())
   name          String
   settingPrompt String
+  scenarioId    Int
+  scenario      Scenario     @relation(fields: [scenarioId], references: [id])
   roomId        Int      // scenarioId 대신 roomId 사용
   room          Room     @relation(fields: [roomId], references: [id])
   chatLogs      ChatLog[]
@@ -93,6 +95,7 @@ model Playthrough {
   id         Int       @id @default(autoincrement())
   status     String
   createdAt  DateTime  @default(now())
+  playTime   DateTime  @default()
   userId     Int
   scenarioId Int
   chatLogs   ChatLog[]
