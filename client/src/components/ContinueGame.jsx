@@ -21,8 +21,8 @@ const ContinueGame = () => {
           setError(err.error);
         } else {
           const data = await res.json();
-          // 실제 게임 페이지로 이동 (예: /game/play/:playthroughId)
-          navigate(`/game/play/${data.playthroughId}`);
+          // 실제 게임 페이지로 이동 (올바른 경로: /game/:playthroughId/play)
+          navigate(`/game/${data.playthroughId}/play`);
         }
       } catch (e) {
         setError('서버 오류');
