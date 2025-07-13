@@ -36,16 +36,47 @@ model Scenario {
   backgroundScript String
   imageUrl         String   // webp 등 이미지 URL 또는 파일 경로 (필수)
   endings          Ending[]
-  npcs             Npc[]
+  rooms            Room[]   // npcs 대신 rooms 관계 추가
   playthroughs     Playthrough[]
+}
+
+// 새로운 Room 모델 추가
+model Room {
+  id                 Int                @id @default(autoincrement())
+  name               String
+  description        String?
+  backgroundImageUrl String?            // 방별 배경 이미지
+  scenarioId         Int
+  scenario           Scenario           @relation(fields: [scenarioId], references: [id])
+  npcs               Npc[]
+  interactiveObjects InteractiveObject[]
+}
+
+// 새로운 InteractiveObject 모델 추가
+model InteractiveObject {
+  id            Int       @id @default(autoincrement())
+  name          String
+  type          String    // 'book', 'notepad', 'clue', 'door', 'item', 'evidence' 등
+  description   String?
+  x             String    // CSS position (예: '20%', '100px')
+  y             String    // CSS position (예: '60%', '200px')
+  width         String?   // CSS width (예: '80px')
+  height        String?   // CSS height (예: '80px')
+  icon          String?   // 아이콘 (예: '📖', '🔍', '🚪')
+  isClickable   Boolean   @default(true)
+  isVisible     Boolean   @default(true)
+  data          String?   // JSON 형태의 추가 데이터 (객체별 특별한 속성)
+  roomId        Int
+  room          Room      @relation(fields: [roomId], references: [id])
+  chatLogs      ChatLog[] // 객체와의 상호작용 로그
 }
 
 model Npc {
   id            Int      @id @default(autoincrement())
   name          String
   settingPrompt String
-  scenarioId    Int
-  scenario      Scenario @relation(fields: [scenarioId], references: [id])
+  roomId        Int      // scenarioId 대신 roomId 사용
+  room          Room     @relation(fields: [roomId], references: [id])
   chatLogs      ChatLog[]
 }
 
@@ -70,15 +101,17 @@ model Playthrough {
 }
 
 model ChatLog {
-  id            Int         @id @default(autoincrement())
-  isUserMessage Boolean
-  messageText   String
-  isHighlighted Boolean     @default(false)
-  createdAt     DateTime    @default(now())
-  playthroughId Int
-  playthrough   Playthrough @relation(fields: [playthroughId], references: [id])
-  npcId         Int?        // 어떤 NPC가 보낸 메시지인지 (nullable)
-  npc           Npc?        @relation(fields: [npcId], references: [id])
+  id                  Int                @id @default(autoincrement())
+  isUserMessage       Boolean
+  messageText         String
+  isHighlighted       Boolean            @default(false)
+  createdAt           DateTime           @default(now())
+  playthroughId       Int
+  playthrough         Playthrough        @relation(fields: [playthroughId], references: [id])
+  npcId               Int?               // NPC와의 채팅 (nullable)
+  npc                 Npc?               @relation(fields: [npcId], references: [id])
+  interactiveObjectId Int?               // 다른 객체와의 상호작용 (nullable)
+  interactiveObject   InteractiveObject? @relation(fields: [interactiveObjectId], references: [id])
 }
 
 model Post {
