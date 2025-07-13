@@ -19,11 +19,23 @@ router.post('/', isLoggedIn, async (req, res) => {
   }
 
   try {
+    // await는 항상 async 라는 키워드가 붙은 함수 안에서만 사용
+    await prisma.playthrough.updateMany({
+      where: {
+        userId: userId,
+        status: 'IN_PROGRESS', // 상태가 'IN_PROGRESS'인 게임들을 찾아서
+      },
+      data: {
+        status: 'ABANDONED', // 상태를 'ABANDONED'(포기함)으로 모두 변경합니다.
+      },
+    });
+
     const newPlaythrough = await prisma.playthrough.create({
       data: {
         status: 'IN_PROGRESS',
         userId: userId,
         scenarioId: Number(scenarioId),
+        playTimeInSecond: 0,
       },
     });
 
