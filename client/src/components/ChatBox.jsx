@@ -9,8 +9,64 @@ import styled from 'styled-components';
 const ChatBoxContainer = styled.div`
   display: flex;
   flex-direction: column;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.9);
+  height: 80%;
+  width: 80%;
+  max-width: 800px;
+  background: rgba(0, 0, 0, 0.95);
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  overflow: hidden;
+`;
+
+// 채팅박스 헤더 (닫기 버튼 포함)
+const ChatBoxHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  background: rgba(52, 73, 94, 0.9);
+  border-bottom: 2px solid #34495e;
+  border-top-left-radius: 12px;
+  border-top-right-radius: 12px;
+`;
+
+// 상호작용 중인 객체 정보
+const InteractionInfo = styled.div`
+  color: white;
+  font-size: 18px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+`;
+
+// 닫기 버튼
+const CloseButton = styled.button`
+  background: linear-gradient(135deg, #e74c3c, #c0392b);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  font-size: 18px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  
+  &:hover {
+    background: linear-gradient(135deg, #c0392b, #a93226);
+    transform: scale(1.1);
+  }
+  
+  &:active {
+    transform: scale(0.95);
+  }
 `;
 
 // 메시지 표시 영역 (스크롤 가능)
@@ -164,7 +220,7 @@ const SendButton = styled.button`
   }
 `;
 
-const ChatBox = ({ playthroughId }) => {
+const ChatBox = ({ playthroughId, currentInteraction, onClose }) => {
   const { token } = useAuth();
   const messagesEndRef = useRef(null);
   
@@ -176,6 +232,91 @@ const ChatBox = ({ playthroughId }) => {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
+  // 상호작용 객체가 변경될 때 자동으로 상호작용 메시지 추가
+  useEffect(() => {
+    if (currentInteraction) {
+      const handleInteraction = async () => {
+        const userMessage = {
+          id: Date.now(),
+          messageText: `${currentInteraction.name}을 조사합니다.`,
+          isUserMessage: true,
+        };
+        
+        setMessages([userMessage]);
+        setIsLoading(true);
+
+        try {
+          // 실제 API가 없으므로 mock 응답 생성
+          const data = JSON.parse(currentInteraction.data || '{}');
+          let responseMessage = '';
+          
+          switch (currentInteraction.type) {
+            case 'book':
+              responseMessage = `${currentInteraction.name}을 읽어보니: ${data.content}`;
+              break;
+            case 'notepad':
+              responseMessage = `${currentInteraction.name}을 살펴보니: ${data.content}`;
+              break;
+            case 'clue':
+              responseMessage = `${currentInteraction.name}을 조사한 결과: ${data.clue}`;
+              break;
+            case 'evidence':
+              responseMessage = `${currentInteraction.name}을 조사한 결과: ${data.clue}`;
+              break;
+            case 'item':
+              responseMessage = `${currentInteraction.name}을 획득했습니다. ${data.description}`;
+              break;
+            case 'npc':
+              responseMessage = `${currentInteraction.name}: ${data.dialogue || '안녕하세요.'}`;
+              break;
+            default:
+              responseMessage = `${currentInteraction.name}과 상호작용했습니다.`;
+          }
+          
+          const npcMessage = {
+            id: Date.now() + 1,
+            messageText: responseMessage,
+            isUserMessage: false,
+          };
+          
+          setTimeout(() => {
+            setMessages(prev => [...prev, npcMessage]);
+            setIsLoading(false);
+          }, 1000);
+          
+        } catch (error) {
+          console.error('상호작용 중 에러:', error);
+          const errorMessage = {
+            id: Date.now() + 1,
+            messageText: '상호작용 중 오류가 발생했습니다.',
+            isUserMessage: false,
+          };
+          setMessages(prev => [...prev, errorMessage]);
+          setIsLoading(false);
+        }
+      };
+
+      handleInteraction();
+    } else {
+      // 상호작용이 없으면 메시지 초기화
+      setMessages([]);
+    }
+  }, [currentInteraction, playthroughId, token]);
+
+  // ESC 키로 채팅박스 닫기
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [onClose]);
 
   const handleSend = async (e) => {
     e.preventDefault();
@@ -208,12 +349,22 @@ const ChatBox = ({ playthroughId }) => {
   };
 
   return (
-    <ChatBoxContainer>
+    <ChatBoxContainer onClick={(e) => e.stopPropagation()}>
+      <ChatBoxHeader>
+        <InteractionInfo>
+          <span>{currentInteraction?.icon}</span>
+          <span>{currentInteraction?.name || '대화'}</span>
+        </InteractionInfo>
+        <CloseButton onClick={onClose}>
+          ✕
+        </CloseButton>
+      </ChatBoxHeader>
+      
       <MessagesArea>
         {messages.map((msg) => (
           <MessageContainer key={msg.id} $isUser={msg.isUserMessage}>
             <MessageLabel>
-              {msg.isUserMessage ? '나' : 'NPC'}
+              {msg.isUserMessage ? '나' : (currentInteraction?.name || 'NPC')}
             </MessageLabel>
             <Message $isUser={msg.isUserMessage}>
               {msg.messageText}
@@ -222,7 +373,7 @@ const ChatBox = ({ playthroughId }) => {
         ))}
         {isLoading && (
           <LoadingIndicator>
-            <MessageLabel>NPC가 입력중...</MessageLabel>
+            <MessageLabel>{currentInteraction?.name || 'NPC'}가 입력중...</MessageLabel>
             <LoadingDots>
               <span></span>
               <span></span>

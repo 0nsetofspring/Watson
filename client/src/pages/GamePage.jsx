@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { getPlaythroughApi } from '../api/game';
+import { getPlaythroughApi, getRoomsApi, getInteractiveObjectsApi, interactWithObjectApi } from '../api/game';
 import styled from 'styled-components';
 import ChatBox from '../components/ChatBox';
 
@@ -69,22 +69,17 @@ const GameTitle = styled.h2`
   text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
 `;
 
-// 메인 콘텐츠 영역 (게임 화면 + 채팅 영역)
-const MainContent = styled.div`
-  flex: 1;
-  display: flex;
-  overflow: hidden;
-`;
-
 // 메인 게임 화면 (배경 + 클릭 가능한 요소들)
 const GameScreen = styled.div`
-  flex: 0 0 65%;
+  flex: 1;
   position: relative;
   background-image: url(${props => props.$backgroundImage || gameBackground});
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
   overflow: hidden;
+  transition: opacity 0.5s ease-in-out;
+  opacity: ${props => props.$fadeOut ? 0 : 1};
 `;
 
 // 클릭 가능한 요소들을 위한 컨테이너
@@ -95,6 +90,9 @@ const InteractiveLayer = styled.div`
   width: 100%;
   height: 100%;
   z-index: 2;
+  transition: opacity 0.5s ease-in-out;
+  opacity: ${props => props.$fadeOut ? 0 : 1};
+  pointer-events: ${props => props.$fadeOut ? 'none' : 'auto'};
 `;
 
 // 클릭 가능한 요소 (NPC, 물건, 단서 등)
@@ -146,15 +144,20 @@ const ElementLabel = styled.div`
   }
 `;
 
-// 우측 채팅 인터페이스 영역
+// 오버레이 채팅 인터페이스 영역
 const ChatArea = styled.div`
-  flex: 1;
-  background: rgba(0, 0, 0, 0.9);
-  border-left: 3px solid #34495e;
-  position: relative;
-  z-index: 100;
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 1000;
   display: flex;
   flex-direction: column;
+  transition: opacity 0.5s ease-in-out;
+  opacity: ${props => props.$show ? 1 : 0};
+  pointer-events: ${props => props.$show ? 'auto' : 'none'};
 `;
 
 // 로딩 및 에러 처리
@@ -172,15 +175,6 @@ const ErrorText = styled.div`
   margin-top: 50px;
 `;
 
-// 게임 상태를 위한 기본 interactive elements 데이터
-const DEFAULT_INTERACTIVE_ELEMENTS = [
-  { id: 'npc1', type: 'npc', x: '20%', y: '60%', icon: '👤', label: '수상한 남자' },
-  { id: 'evidence1', type: 'evidence', x: '70%', y: '40%', icon: '🔍', label: '증거물' },
-  { id: 'clue1', type: 'clue', x: '50%', y: '30%', icon: '📋', label: '단서' },
-  { id: 'door1', type: 'door', x: '90%', y: '50%', icon: '🚪', label: '문' },
-  { id: 'item1', type: 'item', x: '30%', y: '80%', icon: '🔑', label: '열쇠' },
-];
-
 const GamePage = () => {
   const { playthroughId } = useParams();
   const navigate = useNavigate();
@@ -190,16 +184,60 @@ const GamePage = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [currentBackground, setCurrentBackground] = useState(gameBackground);
-  const [interactiveElements, setInteractiveElements] = useState(DEFAULT_INTERACTIVE_ELEMENTS);
   const [selectedElement, setSelectedElement] = useState(null);
+  
+  // 새로운 Room 기반 상태 관리
+  const [rooms, setRooms] = useState([]);
+  const [currentRoom, setCurrentRoom] = useState(null);
+  const [interactiveObjects, setInteractiveObjects] = useState([]);
+  const [isLoadingRoom, setIsLoadingRoom] = useState(false);
+  
+  // 채팅박스 상태 관리
+  const [showChatBox, setShowChatBox] = useState(false);
+  const [currentInteraction, setCurrentInteraction] = useState(null);
+  
+  // 방 전환 애니메이션 상태
+  const [isRoomTransitioning, setIsRoomTransitioning] = useState(false);
 
   // 게임 데이터 로드
   useEffect(() => {
+    const switchRoomInitial = async (room) => {
+      try {
+        setIsLoadingRoom(true);
+        setCurrentRoom(room);
+        
+        // 방 배경 이미지 설정 (초기 로드 시에는 애니메이션 없음)
+        if (room.backgroundImageUrl) {
+          setCurrentBackground(room.backgroundImageUrl);
+        } else {
+          setCurrentBackground(gameBackground);
+        }
+        
+        // 해당 방의 상호작용 객체 가져오기
+        const objectsData = await getInteractiveObjectsApi(room.id, token);
+        setInteractiveObjects(objectsData);
+        
+      } catch (err) {
+        console.error('방 전환 중 에러:', err);
+      } finally {
+        setIsLoadingRoom(false);
+      }
+    };
+
     const fetchGameData = async () => {
       try {
         setIsLoading(true);
         const data = await getPlaythroughApi(playthroughId, token);
         setGameData(data);
+        
+        // 방 목록 가져오기
+        const roomsData = await getRoomsApi(data.scenarioId, token);
+        setRooms(roomsData);
+        
+        // 첫 번째 방으로 이동
+        if (roomsData.length > 0) {
+          await switchRoomInitial(roomsData[0]);
+        }
       } catch (err) {
         setError(err.message);
         console.error('게임 정보를 가져오는 중 에러:', err);
@@ -212,6 +250,39 @@ const GamePage = () => {
       fetchGameData();
     }
   }, [playthroughId, token]);
+
+  // 방 전환 함수 (컴포넌트 내 다른 곳에서 사용)
+  const switchRoom = async (room) => {
+    try {
+      setIsLoadingRoom(true);
+      setIsRoomTransitioning(true);
+      
+      // 1. 페이드 아웃 (0.5초 대기)
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      // 2. 방 정보 및 배경 이미지 변경
+      setCurrentRoom(room);
+      if (room.backgroundImageUrl) {
+        setCurrentBackground(room.backgroundImageUrl);
+      } else {
+        setCurrentBackground(gameBackground);
+      }
+      
+      // 3. 해당 방의 상호작용 객체 가져오기
+      const objectsData = await getInteractiveObjectsApi(room.id, token);
+      setInteractiveObjects(objectsData);
+      
+      // 4. 짧은 대기 후 페이드 인 시작
+      await new Promise(resolve => setTimeout(resolve, 100));
+      setIsRoomTransitioning(false);
+      
+    } catch (err) {
+      console.error('방 전환 중 에러:', err);
+      setIsRoomTransitioning(false);
+    } finally {
+      setIsLoadingRoom(false);
+    }
+  };
 
   // 뒤로 가기
   const handleGoBack = () => {
@@ -242,35 +313,54 @@ const GamePage = () => {
   };
 
   // 클릭 가능한 요소 상호작용
-  const handleElementClick = (element) => {
+  const handleElementClick = async (element) => {
     console.log('요소 클릭:', element);
     setSelectedElement(element);
     
     // 요소 타입에 따른 처리
     switch (element.type) {
       case 'npc':
-        // NPC와 대화 시작
-        console.log('NPC와 대화 시작:', element.label);
-        break;
-      case 'evidence':
-        // 증거물 조사
-        console.log('증거물 조사:', element.label);
-        break;
-      case 'clue':
-        // 단서 획득
-        console.log('단서 획득:', element.label);
+        // NPC와 대화 시작 (채팅창 표시)
+        setCurrentInteraction(element);
+        setShowChatBox(true);
         break;
       case 'door':
-        // 문 열기/이동
-        console.log('문 열기:', element.label);
+        // 문 열기/방 이동
+        try {
+          const data = JSON.parse(element.data || '{}');
+          if (data.targetRoomId) {
+            const targetRoom = rooms.find(room => room.id === data.targetRoomId);
+            if (targetRoom) {
+              await switchRoom(targetRoom);
+            }
+          }
+        } catch (err) {
+          console.error('방 이동 중 에러:', err);
+        }
         break;
+      case 'book':
+      case 'notepad':
+      case 'evidence':
+      case 'clue':
       case 'item':
-        // 아이템 획득
-        console.log('아이템 획득:', element.label);
+        // 다른 객체들은 상호작용 채팅창 표시
+        setCurrentInteraction(element);
+        setShowChatBox(true);
         break;
       default:
         console.log('알 수 없는 요소:', element);
     }
+  };
+
+  // 채팅박스 닫기
+  const handleCloseChatBox = () => {
+    // 아이템의 경우 획득 후 화면에서 제거
+    if (currentInteraction && currentInteraction.type === 'item') {
+      setInteractiveObjects(prev => prev.filter(obj => obj.id !== currentInteraction.id));
+    }
+    
+    setShowChatBox(false);
+    setCurrentInteraction(null);
   };
 
   if (isLoading) {
@@ -299,7 +389,7 @@ const GamePage = () => {
         </NavButtonGroup>
         
         <GameTitle>
-          {gameData?.scenarioTitle || '탐정 게임'}
+          {currentRoom ? `${gameData?.scenarioTitle || '탐정 게임'} - ${currentRoom.name}` : gameData?.scenarioTitle || '탐정 게임'}
         </GameTitle>
         
         <NavButtonGroup>
@@ -309,12 +399,13 @@ const GamePage = () => {
         </NavButtonGroup>
       </TopNavBar>
 
-      {/* 메인 콘텐츠 영역 */}
-      <MainContent>
-        {/* 메인 게임 화면 */}
-        <GameScreen $backgroundImage={currentBackground}>
-          <InteractiveLayer>
-            {interactiveElements.map(element => (
+      {/* 메인 게임 화면 */}
+      <GameScreen $backgroundImage={currentBackground} $fadeOut={isRoomTransitioning}>
+        <InteractiveLayer $fadeOut={showChatBox || isRoomTransitioning}>
+          {isLoadingRoom ? (
+            <LoadingText>방 로딩 중...</LoadingText>
+          ) : (
+            interactiveObjects.map(element => (
               <InteractiveElement
                 key={element.id}
                 $x={element.x}
@@ -324,19 +415,21 @@ const GamePage = () => {
                 onClick={() => handleElementClick(element)}
               >
                 {element.icon}
-                <ElementLabel>{element.label}</ElementLabel>
+                <ElementLabel>{element.name}</ElementLabel>
               </InteractiveElement>
-            ))}
-          </InteractiveLayer>
-        </GameScreen>
+            ))
+          )}
+        </InteractiveLayer>
 
-        {/* 우측 채팅 인터페이스 */}
-        <ChatArea>
+        {/* 오버레이 채팅 인터페이스 */}
+        <ChatArea $show={showChatBox}>
           <ChatBox 
             playthroughId={playthroughId}
+            currentInteraction={currentInteraction}
+            onClose={handleCloseChatBox}
           />
         </ChatArea>
-      </MainContent>
+      </GameScreen>
     </GamePageContainer>
   );
 };
