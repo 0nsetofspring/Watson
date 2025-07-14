@@ -25,7 +25,7 @@ const router = express.Router();
 router.post('/:playthroughId/chats', isLoggedIn, async (req, res) => {
   const { playthroughId } = req.params;
   const userId = req.user.id;
-  const { message } = req.body;
+  const { message, npcId } = req.body;
 
   if (!message) {
     return res.status(400).json({ error: '메시지 내용이 필요합니다.' });
@@ -41,6 +41,35 @@ router.post('/:playthroughId/chats', isLoggedIn, async (req, res) => {
       return res.status(404).json({ error: '진행 중인 게임을 찾을 수 없습니다.' });
     }
 
+    // NPC 찾기 - npcId가 제공되면 해당 NPC를, 아니면 첫 번째 NPC 사용
+    let currentNpc = null;
+    if (npcId) {
+      // 모든 방에서 해당 NPC 찾기
+      for (const room of playthrough.scenario.rooms) {
+        currentNpc = room.npcs.find(npc => npc.id === Number(npcId));
+        if (currentNpc) break;
+      }
+    }
+    
+    // NPC를 찾지 못했으면 첫 번째 방의 첫 번째 NPC 사용
+    if (!currentNpc) {
+      const firstRoom = playthrough.scenario.rooms[0];
+      currentNpc = firstRoom?.npcs[0];
+    }
+
+    if (!currentNpc) {
+      return res.status(404).json({ error: '대화할 NPC를 찾을 수 없습니다.' });
+    }
+
+    // 현재 NPC가 속한 방 찾기
+    let currentRoom = null;
+    for (const room of playthrough.scenario.rooms) {
+      if (room.npcs.some(npc => npc.id === currentNpc.id)) {
+        currentRoom = room;
+        break;
+      }
+    }
+
     await prisma.chatLog.create({
       data: {
         playthroughId: Number(playthroughId),
@@ -49,13 +78,15 @@ router.post('/:playthroughId/chats', isLoggedIn, async (req, res) => {
         npcId: currentNpc.id,
       },
     });
+    
+    // 현재 NPC와 관련된 채팅 기록만 가져오기
     const history = await prisma.chatLog.findMany({
-      where: { playthroughId: Number(playthroughId) },
+      where: { 
+        playthroughId: Number(playthroughId),
+        npcId: currentNpc.id // 현재 NPC의 채팅 기록만 필터링
+      },
       orderBy: { createdAt: 'asc' },
     });
-
-    const currentRoom = playthrough.scenario.rooms[0];
-    const currentNpc = currentRoom?.npcs[0];
     
     const systemPrompt = `
       You are a character in a mystery game. Please immerse yourself in the role based on the following information.
@@ -149,6 +180,14 @@ router.get('/:playthroughId/chats', isLoggedIn, async (req, res) => {
         messageText: true,
         isHighlighted: true,
         createdAt: true,
+        npcId: true,
+        npc: {
+          select: {
+            id: true,
+            name: true,
+            imageUrl: true,
+          },
+        },
       },
     });
 
@@ -193,6 +232,14 @@ router.get('/:playthroughId/chats/highlighted', isLoggedIn, async (req, res) => 
         messageText: true,
         isHighlighted: true,
         createdAt: true,
+        npcId: true,
+        npc: {
+          select: {
+            id: true,
+            name: true,
+            imageUrl: true,
+          },
+        },
       },
     });
 
