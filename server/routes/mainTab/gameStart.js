@@ -88,11 +88,17 @@ router.get('/:playthroughId', isLoggedIn, async (req, res) => {
       },
       include: {
         scenario: { 
-          select: { 
-            title: true, 
-            backgroundScript: true 
-          } 
-        }
+          include: {
+            rooms: {
+              include: {
+                npcs: true,
+                interactiveObjects: true
+              }
+            },
+            endings: true
+          }
+        },
+        chatLogs: true
       }
     });
     
@@ -106,7 +112,9 @@ router.get('/:playthroughId', isLoggedIn, async (req, res) => {
       scenarioTitle: playthrough.scenario.title,
       backgroundScript: playthrough.scenario.backgroundScript,
       status: playthrough.status,
-      createdAt: playthrough.createdAt
+      createdAt: playthrough.createdAt,
+      scenario: playthrough.scenario,
+      chatLogs: playthrough.chatLogs
     });
   } catch (error) {
     console.error('게임 정보 조회 중 오류:', error);

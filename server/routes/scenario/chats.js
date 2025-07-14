@@ -40,10 +40,7 @@ router.post('/:playthroughId/chats', isLoggedIn, async (req, res) => {
     if (!playthrough) {
       return res.status(404).json({ error: '진행 중인 게임을 찾을 수 없습니다.' });
     }
-    const currentNpc = playthrough.scenario.rooms[0].npcs[0];
-    if (!currentNpc) {
-      return res.status(404).json({ error: '대화할 NPC를 찾을 수 없습니다.' });
-    }
+
     await prisma.chatLog.create({
       data: {
         playthroughId: Number(playthroughId),
@@ -57,13 +54,27 @@ router.post('/:playthroughId/chats', isLoggedIn, async (req, res) => {
       orderBy: { createdAt: 'asc' },
     });
 
+    const currentRoom = playthrough.scenario.rooms[0];
+    const currentNpc = currentRoom?.npcs[0];
+    
+    const systemPrompt = `
+      You are a character in a mystery game. Please immerse yourself in the role based on the following information.
+    
+      **Overall Scenario:**
+      ${playthrough.scenario.settingPrompt}
+    
+      **Current Location (Room):**
+      ${currentRoom.description}
+    
+      **Your Role:**
+      ${currentNpc.settingPrompt}
+    `;
+    
     const chatHistoryForGemini = [
-      // NPC의 역할(설정 프롬프트)을 대화 기록의 가장 앞에 시스템 메시지로 추가
       {
         role: "model",
-        parts: [{ text: `You are a character in a mystery game. Your role is defined by the following prompt: ${currentNpc.settingPrompt}` }],
+        parts: [{ text: systemPrompt }],
       },
-      // 2. DB에서 가져온 기존 대화 기록을 Gemini가 이해하는 형식으로 변환합니다.
       ...history.map(log => ({
           role: log.isUserMessage ? "user" : "model",
           parts: [{ text: log.messageText }],
