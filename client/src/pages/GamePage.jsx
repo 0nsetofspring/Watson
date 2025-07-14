@@ -198,42 +198,34 @@ const InteractiveLayer = styled.div`
 // 클릭 가능한 요소 (NPC, 물건, 단서 등)
 const InteractiveElement = styled.div`
   position: absolute;
+  left: ${props => `calc(${props.$x} - (${props.$width} / 2))`};
+  top: ${props => `calc(${props.$y} - (${props.$height} / 2))`};
   width: ${props => props.$width || '80px'};
   height: ${props => props.$height || '80px'};
-  left: ${props => props.$x || '50%'};
-  top: ${props => props.$y || '50%'};
-  transform: translate(-50%, -50%);
+  background: transparent;
+  border: none;
+  padding: 0;
+  margin: 0;
   cursor: pointer;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(218, 165, 32, 0.3) 0%, transparent 70%);
-  border: 2px solid rgba(218, 165, 32, 0.6);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 24px;
-  transition: all 0.3s ease;
-  box-shadow: 
-    0 0 20px rgba(218, 165, 32, 0.4),
-    inset 0 0 20px rgba(218, 165, 32, 0.2);
   z-index: 10;
-  
-  &:hover {
-    background: radial-gradient(circle, rgba(218, 165, 32, 0.5) 0%, transparent 70%);
-    border-color: rgba(218, 165, 32, 0.8);
-    transform: translate(-50%, -50%) scale(1.1);
-    box-shadow: 
-      0 0 30px rgba(218, 165, 32, 0.6),
-      inset 0 0 30px rgba(218, 165, 32, 0.3);
-    animation: vintageGlow 2s ease-in-out infinite alternate;
+  /* 중앙 빛나는 점 스타일 */
+  .glow-dot {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 14px;
+    height: 14px;
+    transform: translate(-50%, -50%);
+    border-radius: 50%;
+    background: radial-gradient(circle, #fffbe6 60%, #ffd700 100%);
+    box-shadow: 0 0 12px 4px #ffd700, 0 0 24px 8px #fffbe6;
+    animation: glowPulse 1.6s infinite alternate;
+    pointer-events: none;
+    z-index: 2;
   }
-  
-  &:active {
-    transform: translate(-50%, -50%) scale(0.95);
-  }
-  
-  @keyframes vintageGlow {
-    from { box-shadow: 0 0 20px rgba(218, 165, 32, 0.4); }
-    to { box-shadow: 0 0 40px rgba(218, 165, 32, 0.8); }
+  @keyframes glowPulse {
+    from { opacity: 0.7; box-shadow: 0 0 8px 2px #ffd700, 0 0 16px 4px #fffbe6; }
+    to   { opacity: 1;   box-shadow: 0 0 18px 8px #ffd700, 0 0 32px 12px #fffbe6; }
   }
 `;
 
@@ -670,7 +662,27 @@ const GamePage = () => {
                 $height={element.height}
                 onClick={() => handleElementClick(element)}
               >
-                {element.icon}
+                {/* NPC만 이미지 표시, 그 외에는 중앙에 빛나는 점 */}
+                {element.type === 'npc' ? (
+                  <img
+                    src={(() => {
+                      if (element.imageUrl) return element.imageUrl;
+                      if (element.npcInfo && element.npcInfo.imageUrl) return element.npcInfo.imageUrl;
+                      return '';
+                    })()}
+                    alt={element.name}
+                    style={{
+                      width: '100%',
+                      height: '100%',
+                      objectFit: 'contain',
+                      pointerEvents: 'none',
+                      userSelect: 'none',
+                      display: 'block',
+                    }}
+                  />
+                ) : (
+                  <span className="glow-dot" />
+                )}
                 <ElementLabel>{element.name}</ElementLabel>
               </InteractiveElement>
             ))
