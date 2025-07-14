@@ -360,6 +360,9 @@ const GamePage = () => {
   const [interactiveObjects, setInteractiveObjects] = useState([]);
   const [isLoadingRoom, setIsLoadingRoom] = useState(false);
   
+  // NPC 정보 관리를 위한 새로운 상태 추가
+  const [npcs, setNpcs] = useState([]);
+  
   // 채팅박스 상태 관리 (NPC 전용)
   const [showChatBox, setShowChatBox] = useState(false);
   const [currentInteraction, setCurrentInteraction] = useState(null);
@@ -390,6 +393,15 @@ const GamePage = () => {
         // API 응답에서 rooms 데이터 추출
         const roomsData = data.scenario?.rooms || [];
         setRooms(roomsData);
+        
+        // 모든 NPC 정보를 추출하여 저장
+        const allNpcs = [];
+        roomsData.forEach(room => {
+          if (room.npcs) {
+            allNpcs.push(...room.npcs);
+          }
+        });
+        setNpcs(allNpcs);
         
         // 첫 번째 방으로 초기 설정
         if (roomsData.length > 0) {
@@ -490,11 +502,17 @@ const GamePage = () => {
           const npcData = JSON.parse(element.data || '{}');
           console.log('NPC 데이터:', npcData);
           
+          // 실제 NPC 정보를 npcs 배열에서 찾기
+          const actualNpc = npcs.find(npc => npc.id === npcData.npcId);
+          console.log('실제 NPC 정보:', actualNpc);
+          
           // NPC 정보를 포함한 상호작용 객체 생성
           const npcInteraction = {
             ...element,
             npcId: npcData.npcId,
-            npcName: npcData.npcName
+            npcName: npcData.npcName,
+            npcImageUrl: actualNpc?.imageUrl || element.imageUrl, // 실제 NPC imageUrl 사용
+            npcInfo: actualNpc // 전체 NPC 정보 포함
           };
           
           setCurrentInteraction(npcInteraction);

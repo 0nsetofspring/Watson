@@ -47,7 +47,7 @@ router.post('/google', async (req, res) => {
     });
 
     // 4. 우리 서비스의 JWT 발급
-    const accessToken = jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: '1h' }); //JWT 토큰을 생성
+    const accessToken = jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: '24h' }); //JWT 토큰을 생성
     res.json({
       accessToken: accessToken, //다른 API 요청할 때 인증 헤더에 포함
       user: {

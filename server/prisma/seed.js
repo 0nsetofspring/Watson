@@ -54,7 +54,26 @@ async function main() {
     data: {
       scenarioId: scenario1.id,
       name: "진실",
-      description: "범인은 김지연이다. 그녀는 과거 해커톤에서 자신의 아이디어를 도둑맞은 것에 대한 복수심으로, 수면유도제를 탄 음료를 건네 이준서를 잠들게 한 후, 랜선을 이용해 교살하여 과로사로 위장했다.",
+      description: `**1. 범행 동기: 빼앗긴 영광, 짓밟힌 자존심**
+모든 일의 시작은 작년 'NEO 해커톤'이었습니다. 당시 김지연은 팀장이었고, 이준서는 팀원이었습니다. 김지연은 밤을 새워 독창적인 알고리즘을 설계했고, 이것이 팀의 핵심 아이디어였습니다.
+하지만 최종 발표 직전, 이준서는 그녀의 코드를 자신의 노트북으로 복사한 뒤, 그녀를 팀에서 배제하고 자신이 모든 것을 개발한 것처럼 발표하여 대상을 수상했습니다. 주최 측은 팀 내부의 문제로 치부했고, 김지연은 아이디어와 영광을 모두 빼앗긴 채 깊은 상처와 증오심을 품게 되었습니다.
+이번 몰입캠프에서 이준서와 재회한 그녀는, 그가 여전히 다른 학생들의 아이디어를 비웃고 자신의 재능을 과시하는 오만한 모습을 보며 복수를 결심합니다.
+
+**2. 범행 계획: 디지털과 아날로그를 넘나드는 트릭**
+김지연의 계획은 '경찰이 단순 과로사로 오인하게 만드는 것'이 핵심이었습니다.
+1단계 (독약 준비): 그녀는 며칠 전, 두통을 핑계로 약국에서 처방전 없이 살 수 있는 수면유도제 '독세핀'을 구매합니다. 그리고 이 약을 곱게 빻아 작은 캡슐에 담아 항상 소지하고 다녔습니다.
+2단계 (알리바이 설계): 그녀는 팀원인 김지민과 함께 밤샘 코딩을 하며, "우리 둘은 밤새 같이 있었다"는 공동의 알리바이를 자연스럽게 만들었습니다.
+3단계 (디지털 트랩): 그녀는 이준서의 노트북에 원격으로 접근할 방법을 미리 파악해 두었습니다. 그리고 그가 평소 다른 사람의 코드를 훔쳐보는 습관이 있음을 알고, 의도적으로 자신의 프로젝트 폴더에 '메모리 폭탄' 코드를 숨겨두었습니다. 이준서가 이 코드를 실행하면, 그의 노트북은 과부하로 멈추게 될 것이고, 이는 '과도한 코딩으로 인한 시스템 다운'처럼 보이게 될 것입니다.
+
+**3. 실행: 2025년 7월 14일 새벽**
+01:35: (CCTV 기록과 일치) 김지연은 라운지에서 "고생이 많다"며 이준서에게 에너지 드링크를 건넵니다. 이때, 미리 준비한 독세핀 캡슐을 몰래 음료에 탑니다.
+01:35 ~ 02:30: 이준서는 음료를 마신 후, 자리로 돌아와 코딩을 계속합니다. 그는 김지연 팀의 코드를 훔쳐보다가 숨겨진 '메모리 폭탄' 코드를 발견하고 실행합니다. 약 기운이 서서히 퍼지면서 그는 극심한 피로감과 졸음을 느끼고, 동시에 노트북은 빌드 과정에서 메모리 부족(OOM)으로 멈춰버립니다. 이준서는 이 상황을 해결하려다 책상에 엎드려 깊은 잠에 빠집니다.
+02:30: (CCTV 기록과 일치) 범행의 마지막 단계를 위해, 김지연은 서버실에 있는 예비 랜선을 가지러 갑니다. 하지만 실수로 자신의 카드키가 아닌, 이전 해커톤에서 기념품으로 받았던 이준서의 학교 학생증을 가져가 태그합니다. 당연히 '접근 권한 없음' 에러가 뜨고, 그녀는 당황해서 자기 카드키로 다시 찍고 서버실에 들어갑니다.
+02:45: 예비 랜선을 들고 나온 김지연은, 모두가 코딩에 집중하고 있음을 확인하고 어두운 복도를 통해 102호로 잠입합니다.
+02:50: 깊이 잠든 이준서의 목에 랜선을 감아 강력하게 압박하여 질식시킵니다. 저항은 거의 없었습니다. 그녀는 사후 경직이 오기 전, 마치 그가 피곤해서 책상에 엎드려 자는 것처럼 자세를 자연스럽게 만듭니다. 목에 남은 희미한 자국은 후드티 끈이나 목걸이에 의한 것처럼 보이도록 위장합니다.
+02:55: 그녀는 조용히 102호를 빠져나와 자기 자리로 돌아와, 아무 일도 없었다는 듯 코딩을 계속합니다.
+
+이것이 이번 사건의 전말입니다.`,
     },
   });
 
@@ -68,7 +87,7 @@ async function main() {
         `한쪽 벽면 전체는 거대한 초록색 칠판으로, 분필로 쓰인 복잡한 수식과 다이어그램으로 가득 차 있다. \n` +
         `피해자 이준서의 자리는 방 안쪽 구석, 현재 폴리스 라인이 설치되어 있다. \n` +
         `그의 책상 위에는 식어버린 커피와 반쯤 남은 에너지 드링크 캔, 그리고 전문 개발 서적 몇 권이 놓여있다.`,
-      backgroundImageUrl: "/images/backgrounds/craft_room_102.png",
+      backgroundImageUrl: "/images/backgrounds/b_classroom.webp",
     },
   });
 
@@ -78,7 +97,7 @@ async function main() {
       name: "크래프트관 라운지",
       description: `102호 바깥에 위치한 넓고 개방된 공간. 딱딱한 테이블과 의자들이 줄지어 놓여있고, 학생들은 이곳에서 식사를 하거나 노트북을 펼치고 공부를 한다. \n` +
         `전면이 통창으로 되어 있어 밤에도 내부가 훤히 들여다보이며, 항상 누군가가 오가는 곳이라 비밀스러운 대화를 나누기엔 적합하지 않아 보인다.`,
-      backgroundImageUrl: "/images/backgrounds/craft_lounge_day.png",
+      backgroundImageUrl: "/images/backgrounds/b_lounge.webp",
     },
   });
 
@@ -89,7 +108,7 @@ async function main() {
       description: `102호와 라운지를 연결하는 길고 어두운 복도. 센서등이 꺼지면 한 치 앞도 보이지 않을 만큼 어둡다. \n` +
         `벽을 따라 딱딱하고 불편해 보이는 의자들이 줄지어 놓여 있어, 지친 학생들이 잠시 쉬거나 은밀한 대화를 나누는 장소로 이용된다. \n` +
         `구석에는 내용물이 훤히 비치는 투명한 비닐에 담긴 쓰레기봉투들이 작은 산을 이루고 있다.`,
-      backgroundImageUrl: "/images/backgrounds/craft_hallway_night.png",
+      backgroundImageUrl: "/images/backgrounds/b_hallway.webp",
     },
   });
 
@@ -111,7 +130,7 @@ async function main() {
     data: {
       roomId: room102.id,
       name: "김지민",
-      imageUrl: "/images/characters/kim_jimin.png",
+      imageUrl: "/images/characters/p_kjm.png",
       settingPrompt: `[기본 설정 및 심리 상태]\n` +
         `당신은 KAIST 전산학부 2학년 김지민이며, 이 사건의 범인이 아닙니다. \n` +
         `당신의 가장 큰 목표는 이 사건에서 최대한 빨리 벗어나, 당신의 명예를 더럽힌 이준서의 그늘에서 벗어나 자신의 실력으로 프로젝트를 완성하는 것입니다. \n` +
@@ -129,7 +148,7 @@ async function main() {
     data: {
       roomId: lounge.id,
       name: "김지연",
-      imageUrl: "/images/characters/kim_jiyeon.png",
+      imageUrl: "/images/characters/p_kjy.png",
       settingPrompt: `[기본 설정 및 심리 상태]\n` +
         `당신은 한양대학교 정보시스템학과 3학년 김지연이며, 이 사건의 진범입니다. \n` +
         `당신의 내면은 과거의 원한과 현재의 죄책감, 그리고 완전 범죄를 성공시켜야 한다는 압박감으로 들끓고 있지만, 겉으로는 완벽한 포커페이스를 유지해야 합니다. \n` +
@@ -147,7 +166,7 @@ async function main() {
     data: {
       roomId: hallway.id,
       name: "박세영",
-      imageUrl: "/images/characters/park_seyoung.png",
+      imageUrl: "/images/characters/p_psy.png",
       settingPrompt: `[기본 설정 및 심리 상태]\n` +
         `당신은 한양대학교 컴퓨터소프트웨어학부 2학년 박세영이자, 피해자의 팀메이트입니다. \n` +
         `당신은 범인이 아니지만, 이준서의 지속적인 가스라이팅과 협박에 시달려왔고, 그가 죽은 지금은 공포와 안도감이 뒤섞인 혼란스러운 상태입니다. \n` +
@@ -165,7 +184,7 @@ async function main() {
     data: {
       roomId: lounge.id,
       name: "허지민",
-      imageUrl: "/images/characters/heo_jimin.png",
+      imageUrl: "/images/characters/p_hjm.png",
       settingPrompt: `[기본 설정 및 심리 상태]\n` +
         `당신은 작년 몰입캠프 우수 참가자 출신으로, 올해 2분반을 담당하는 운영진(조교)입니다. \n` +
         `당신은 참가자들의 고충을 잘 이해하며, 이 비극적인 사건에 대해 진심으로 안타까워하고 있습니다. \n` +
@@ -202,7 +221,7 @@ async function main() {
         npcId: npc1.id,
         npcName: "김지민"
       }),
-      imageUrl: "/images/characters/kim_jimin.png"
+      imageUrl: "/images/characters/p_kjm.png"
     },
     {
       roomId: lounge.id,
@@ -220,7 +239,7 @@ async function main() {
         npcId: npc2.id,
         npcName: "김지연"
       }),
-      imageUrl: "/images/characters/kim_jiyeon.png"
+      imageUrl: "/images/characters/p_kjy.png"
     },
     {
       roomId: hallway.id,
@@ -238,7 +257,7 @@ async function main() {
         npcId: npc3.id,
         npcName: "박세영"
       }),
-      imageUrl: "/images/characters/park_seyoung.png"
+      imageUrl: "/images/characters/p_psy.png"
     },
     {
       roomId: lounge.id,
@@ -256,7 +275,7 @@ async function main() {
         npcId: npc4.id,
         npcName: "허지민"
       }),
-      imageUrl: "/images/characters/heo_jimin.png"
+      imageUrl: "/images/characters/p_hjm.png"
     },
     
     // ===== INTERACTIVE OBJECTS =====

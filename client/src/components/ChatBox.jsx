@@ -8,7 +8,7 @@ import styled from 'styled-components';
 // 채팅박스 전체 컨테이너
 const ChatBoxContainer = styled.div`
   display: flex;
-  flex-direction: column;
+  flex-direction: row; /* 가로 배치로 변경 */
   height: 90%;
   width: 95%;
   max-width: 1200px;
@@ -40,6 +40,94 @@ const ChatBoxContainer = styled.div`
   }
 `;
 
+// 캐릭터 이미지 영역 (왼쪽)
+const CharacterArea = styled.div`
+  width: 300px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 0;
+  position: relative;
+  z-index: 2;
+  overflow: hidden;
+`;
+
+// 캐릭터 이미지
+const CharacterImage = styled.img`
+  width: 100%;
+  height: 100%;
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  border-radius: 8px;
+  border: 2px solid #daa520;
+  background: linear-gradient(135deg, #f4e8d0 0%, #e6d3b0 100%);
+  box-shadow: 
+    0 4px 12px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  margin-bottom: 20px;
+  display: block;
+`;
+
+// 기본 캐릭터 아이콘 (이미지가 없을 때)
+const DefaultCharacterIcon = styled.div`
+  width: 100%;
+  height: 100%;
+  min-height: 300px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  border: 2px solid #daa520;
+  background: linear-gradient(135deg, #f4e8d0 0%, #e6d3b0 100%);
+  box-shadow: 
+    0 4px 12px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  margin-bottom: 20px;
+  font-size: 80px;
+  color: #8b4513;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+`;
+
+// 캐릭터 정보 영역
+const CharacterInfo = styled.div`
+  text-align: center;
+  color: #daa520;
+  margin-bottom: auto;
+`;
+
+// 캐릭터 이름
+const CharacterName = styled.h3`
+  font-size: 20px;
+  font-weight: 600;
+  font-family: 'Cinzel', serif;
+  margin: 0 0 8px 0;
+  text-shadow: 
+    2px 2px 4px rgba(0, 0, 0, 0.8),
+    0 0 10px rgba(218, 165, 32, 0.3);
+  
+  &::before,
+  &::after {
+    content: '◆';
+    color: #b8860b;
+    font-size: 0.7em;
+    margin: 0 8px;
+    opacity: 0.7;
+  }
+`;
+
+// 채팅 영역 (오른쪽)
+const ChatAreaContainer = styled.div`
+  flex: 1;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  z-index: 2;
+`;
+
 // 채팅박스 헤더 (닫기 버튼 포함)
 const ChatBoxHeader = styled.div`
   display: flex;
@@ -48,8 +136,6 @@ const ChatBoxHeader = styled.div`
   padding: 16px 20px;
   background: linear-gradient(135deg, #8b4513 0%, #704214 100%);
   border-bottom: 3px solid #daa520;
-  border-top-left-radius: 4px;
-  border-top-right-radius: 4px;
   position: relative;
   z-index: 2;
   
@@ -234,9 +320,10 @@ const Message = styled.div`
 const MessageHeader = styled.div`
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: ${props => props.$isUser ? 'flex-end' : 'flex-start'};
   margin-bottom: 4px;
-  width: 75%;
+  width: 100%;
+  gap: 8px; /* NPC 이름과 하이라이트 버튼 사이의 간격 */
 `;
 
 const MessageLabel = styled.div`
@@ -405,6 +492,16 @@ const ChatBox = ({ playthroughId, currentInteraction, onClose }) => {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+  
+  // currentInteraction 정보를 로컬 상태로 저장 (닫기 애니메이션 중에도 유지하기 위함)
+  const [localInteraction, setLocalInteraction] = useState(null);
+  
+  // currentInteraction이 변경될 때 로컬 상태 업데이트
+  useEffect(() => {
+    if (currentInteraction) {
+      setLocalInteraction(currentInteraction);
+    }
+  }, [currentInteraction]);
 
   // 채팅 기록 불러오기
   useEffect(() => {
@@ -574,78 +671,100 @@ const ChatBox = ({ playthroughId, currentInteraction, onClose }) => {
 
   return (
     <ChatBoxContainer onClick={(e) => e.stopPropagation()}>
-      <ChatBoxHeader>
-        <InteractionInfo>
-          <span>{currentInteraction?.icon}</span>
-          <span>{currentInteraction?.name || '대화'}</span>
-        </InteractionInfo>
-        <CloseButton onClick={onClose}>
-          ✕
-        </CloseButton>
-      </ChatBoxHeader>
-      
-      <MessagesArea>
-        {isLoadingHistory ? (
-          <LoadingIndicator>
-            <MessageLabel>채팅 기록을 불러오는 중...</MessageLabel>
-            <LoadingDots>
-              <span></span>
-              <span></span>
-              <span></span>
-            </LoadingDots>
-          </LoadingIndicator>
+      <CharacterArea>
+        {localInteraction?.npcImageUrl ? (
+          <CharacterImage 
+            src={localInteraction.npcImageUrl} 
+            alt={localInteraction?.name}
+            onError={(e) => {
+              console.error('캐릭터 이미지 로드 실패:', localInteraction.npcImageUrl);
+              e.target.style.display = 'none';
+            }}
+          />
         ) : (
-          messages.map((msg) => (
-            <MessageContainer 
-              key={msg.id} 
-              $isUser={msg.isUserMessage} 
-            >
-              <MessageHeader>
-                <MessageLabel>
-                  {msg.isUserMessage ? '나' : (currentInteraction?.name || 'NPC')}
-                </MessageLabel>
-                {!msg.isUserMessage && ( // NPC 메시지에만 하이라이트 버튼 표시
-                  <HighlightButton 
-                    $isHighlighted={msg.isHighlighted} 
-                    onClick={() => toggleHighlight(msg.id)}
-                    $show={true}
-                    title={msg.isHighlighted ? '하이라이트 해제' : '하이라이트 설정'}
-                  >
-                    ✏️
-                  </HighlightButton>
-                )}
-              </MessageHeader>
-              <Message $isUser={msg.isUserMessage} $isHighlighted={msg.isHighlighted}>
-                {msg.messageText}
-              </Message>
-            </MessageContainer>
-          ))
+          <DefaultCharacterIcon>
+            {localInteraction?.icon || '👤'}
+          </DefaultCharacterIcon>
         )}
-        {isLoading && (
-          <LoadingIndicator>
-            <MessageLabel>{currentInteraction?.name || 'NPC'}가 입력중...</MessageLabel>
-            <LoadingDots>
-              <span></span>
-              <span></span>
-              <span></span>
-            </LoadingDots>
-          </LoadingIndicator>
-        )}
-        <div ref={messagesEndRef} />
-      </MessagesArea>
+        <CharacterInfo>
+          <CharacterName>{localInteraction?.name || 'NPC'}</CharacterName>
+        </CharacterInfo>
+      </CharacterArea>
       
-      <InputArea onSubmit={handleSend}>
-        <TextInput
-          type="text"
-          value={input}
-          onChange={e => setInput(e.target.value)}
-          disabled={isLoading}
-          placeholder="메시지를 입력하세요..."
-        />
-        <SendButton type="submit" disabled={isLoading || !input.trim()}>
-          전송
-        </SendButton>
-      </InputArea>
+      <ChatAreaContainer>
+        <ChatBoxHeader>
+          <InteractionInfo>
+            <span>{localInteraction?.icon}</span>
+            <span>{localInteraction?.name || '대화'}</span>
+          </InteractionInfo>
+          <CloseButton onClick={onClose}>
+            ✕
+          </CloseButton>
+        </ChatBoxHeader>
+        
+        <MessagesArea>
+          {isLoadingHistory ? (
+            <LoadingIndicator>
+              <MessageLabel>채팅 기록을 불러오는 중...</MessageLabel>
+              <LoadingDots>
+                <span></span>
+                <span></span>
+                <span></span>
+              </LoadingDots>
+            </LoadingIndicator>
+          ) : (
+            messages.map((msg) => (
+              <MessageContainer 
+                key={msg.id} 
+                $isUser={msg.isUserMessage} 
+              >
+                <MessageHeader $isUser={msg.isUserMessage}>
+                  <MessageLabel>
+                    {msg.isUserMessage ? '나' : (localInteraction?.name || 'NPC')}
+                  </MessageLabel>
+                  {!msg.isUserMessage && ( // NPC 메시지에만 하이라이트 버튼 표시
+                    <HighlightButton 
+                      $isHighlighted={msg.isHighlighted} 
+                      onClick={() => toggleHighlight(msg.id)}
+                      $show={true}
+                      title={msg.isHighlighted ? '하이라이트 해제' : '하이라이트 설정'}
+                    >
+                      ✏️
+                    </HighlightButton>
+                  )}
+                </MessageHeader>
+                <Message $isUser={msg.isUserMessage} $isHighlighted={msg.isHighlighted}>
+                  {msg.messageText}
+                </Message>
+              </MessageContainer>
+            ))
+          )}
+          {isLoading && (
+            <LoadingIndicator>
+              <MessageLabel>{localInteraction?.name || 'NPC'}가 입력중...</MessageLabel>
+              <LoadingDots>
+                <span></span>
+                <span></span>
+                <span></span>
+              </LoadingDots>
+            </LoadingIndicator>
+          )}
+          <div ref={messagesEndRef} />
+        </MessagesArea>
+        
+        <InputArea onSubmit={handleSend}>
+          <TextInput
+            type="text"
+            value={input}
+            onChange={e => setInput(e.target.value)}
+            disabled={isLoading}
+            placeholder="메시지를 입력하세요..."
+          />
+          <SendButton type="submit" disabled={isLoading || !input.trim()}>
+            전송
+          </SendButton>
+        </InputArea>
+      </ChatAreaContainer>
     </ChatBoxContainer>
   );
 };
