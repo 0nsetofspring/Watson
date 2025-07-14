@@ -90,6 +90,7 @@ router.post('/:playthroughId/chats', isLoggedIn, async (req, res) => {
     
     const systemPrompt = `
       You are a character in a mystery game. Please immerse yourself in the role based on the following information.
+      You must answer in no more than two sentences.
     
       **Overall Scenario:**
       ${playthrough.scenario.settingPrompt}
