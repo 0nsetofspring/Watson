@@ -1,27 +1,124 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 
-// 객체 정보 전체 컨테이너
-const ObjectInfoContainer = styled.div`
+// 조사 완료 알림 (상단 우측)
+const InvestigationCompleteAlert = styled.div`
+  position: fixed;
+  top: 80px;
+  right: 20px;
+  background: linear-gradient(135deg, #4caf50 0%, #45a049 100%);
+  color: white;
+  padding: 16px 24px;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  font-family: 'Cinzel', serif;
+  font-weight: 600;
+  font-size: 14px;
+  z-index: 9999;
+  animation: slideInRight 0.5s ease-out;
+  max-width: 300px;
+  
+  @keyframes slideInRight {
+    from {
+      transform: translateX(100%);
+      opacity: 0;
+    }
+    to {
+      transform: translateX(0);
+      opacity: 1;
+    }
+  }
+`;
+
+// 경고 알림 (상단 우측)
+const WarningAlert = styled.div`
+  position: fixed;
+  top: 80px;
+  right: 20px;
+  background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%);
+  color: white;
+  padding: 16px 24px;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  font-family: 'Cinzel', serif;
+  font-weight: 600;
+  font-size: 14px;
+  z-index: 9999;
+  animation: slideInRight 0.5s ease-out;
+  max-width: 300px;
+  
+  @keyframes slideInRight {
+    from {
+      transform: translateX(100%);
+      opacity: 0;
+    }
+    to {
+      transform: translateX(0);
+      opacity: 1;
+    }
+  }
+`;
+
+// 전체 컨테이너 (최소한의 배경)
+const SimpleContainer = styled.div`
   display: flex;
   flex-direction: column;
-  height: 85%;
-  width: 85%;
-  max-width: 800px;
-  background: 
-    linear-gradient(135deg, #f4e8d0 0%, #e6d3b0 100%);
-  border: 3px solid #8b4513;
-  border-radius: 8px;
+  align-items: center;
+  justify-content: flex-end;
   position: absolute;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  box-shadow: 
-    0 20px 40px rgba(0, 0, 0, 0.6),
-    inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  width: 85vw;
+  max-width: 800px;
+  height: 85vh;
+  max-height: 700px;
+  background: ${({ $bgimage }) => $bgimage ? `url(${$bgimage}) center/cover no-repeat` : 'rgba(255,255,255,0.92)'};
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+  padding: 0;
   overflow: hidden;
+  transition: transform 0.4s ease;
+  transform: translate(-50%, -50%) ${({ $shifted }) => $shifted ? 'translateX(-120px)' : 'translateX(0)'};
+`;
+
+// 상세 조사 패널 (오른쪽에서 슬라이드)
+const DetailPanel = styled.div`
+  position: absolute;
+  top: 0;
+  right: ${({ $show }) => $show ? '0' : '-100%'};
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, #f8f4e6 0%, #f0e6d2 100%);
+  border: 3px solid #8b4513;
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.25);
+  transition: right 0.4s ease;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  z-index: 10;
+`;
+
+// 설명+버튼을 감싸는 박스 (ChatBox/Modal 스타일 참고)
+const InfoBox = styled.div`
+  width: 90%;
+  max-width: 520px;
+  margin-bottom: 48px;
+  background: linear-gradient(135deg, #f4e8d0 0%, #e6d3b0 100%);
+  border: 3px solid #8b4513;
+  border-radius: 8px;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.18), inset 0 1px 0 rgba(255,255,255,0.3);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 32px 28px 24px 28px;
+  gap: 18px;
   font-family: 'Crimson Text', serif;
-  
+  position: relative;
+  z-index: 2;
   &::before {
     content: '';
     position: absolute;
@@ -29,470 +126,341 @@ const ObjectInfoContainer = styled.div`
     left: 10px;
     right: 10px;
     bottom: 10px;
-    border: 1px solid rgba(139, 69, 19, 0.3);
+    border: 1px solid rgba(139, 69, 19, 0.18);
     border-radius: 4px;
     pointer-events: none;
     z-index: 1;
   }
 `;
 
-// 헤더
-const ObjectInfoHeader = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 20px;
-  background: linear-gradient(135deg, #8b4513 0%, #704214 100%);
-  border-bottom: 3px solid #daa520;
-  border-top-left-radius: 4px;
-  border-top-right-radius: 4px;
-  position: relative;
+const DescriptionText = styled.div`
+  width: 100%;
+  color: #2c1810;
+  font-size: 1.1rem;
+  font-family: 'Crimson Text', serif;
+  white-space: pre-wrap;
+  word-break: break-all;
+  margin-bottom: 0;
+  text-shadow: 0 1px 0 rgba(255,255,255,0.2);
   z-index: 2;
-  
-  &::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 2px;
-    background: linear-gradient(90deg, transparent, #daa520, transparent);
-  }
 `;
 
-// 객체 정보 타이틀
-const ObjectTitle = styled.div`
-  color: #daa520;
-  font-size: 20px;
-  font-weight: 600;
+const InspectButton = styled.button`
+  background: linear-gradient(135deg, #daa520, #b8860b);
+  color: #1c1c1c;
+  border: 2px solid #8b4513;
+  border-radius: 4px;
+  padding: 12px 24px;
+  font-size: 1rem;
   font-family: 'Cinzel', serif;
-  display: flex;
-  align-items: center;
-  gap: 15px;
-  text-shadow: 
-    2px 2px 4px rgba(0, 0, 0, 0.8),
-    0 0 10px rgba(218, 165, 32, 0.3);
-  
-  &::before,
-  &::after {
-    content: '◆';
-    color: #b8860b;
-    font-size: 0.7em;
-    margin: 0 5px;
-    opacity: 0.7;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.18), inset 0 1px 0 rgba(255,255,255,0.2);
+  transition: all 0.3s ease;
+  display: block;
+  z-index: 2;
+  text-shadow: 0 1px 0 rgba(255,255,255,0.2);
+  &:hover {
+    background: linear-gradient(135deg, #b8860b, #daa520);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.22), inset 0 1px 0 rgba(255,255,255,0.3);
+  }
+  &:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.18), inset 0 1px 0 rgba(255,255,255,0.1);
   }
 `;
 
-// 닫기 버튼
-const CloseButton = styled.button`
+// 상세 조사 패널 내 요소들
+const InvestigationIcon = styled.div`
+  font-size: 4rem;
+  color: #8b4513;
+  margin-bottom: 24px;
+  opacity: 0.8;
+`;
+
+const InvestigationText = styled.div`
+  color: #2c1810;
+  font-size: 1.2rem;
+  font-family: 'Crimson Text', serif;
+  text-align: center;
+  line-height: 1.6;
+  margin-bottom: 20px;
+`;
+
+const RequiredQuestionsText = styled.div`
+  color: #b8860b;
+  font-size: 1rem;
+  font-family: 'Cinzel', serif;
+  font-weight: 600;
+  text-align: center;
+  margin-bottom: 20px;
+`;
+
+const DetailContent = styled.div`
+  width: 90%;
+  max-width: 600px;
+  color: #2c1810;
+  font-size: 1.1rem;
+  font-family: 'Crimson Text', serif;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  text-align: left;
+  background: rgba(255, 255, 255, 0.1);
+  padding: 20px;
+  border-radius: 8px;
+  border: 1px solid rgba(139, 69, 19, 0.2);
+`;
+
+const CloseDetailButton = styled.button`
   background: linear-gradient(135deg, #cd853f, #a0522d);
   color: #f4e8d0;
   border: 2px solid #8b4513;
   border-radius: 4px;
-  padding: 10px 16px;
-  cursor: pointer;
-  font-size: 14px;
-  font-weight: 500;
+  padding: 10px 20px;
+  font-size: 0.9rem;
   font-family: 'Cinzel', serif;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 20px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.18);
   transition: all 0.3s ease;
-  box-shadow: 
-    0 2px 4px rgba(0, 0, 0, 0.3),
-    inset 0 1px 0 rgba(255, 255, 255, 0.2);
   
   &:hover {
     background: linear-gradient(135deg, #a0522d, #cd853f);
     transform: translateY(-1px);
-    box-shadow: 
-      0 4px 8px rgba(0, 0, 0, 0.4),
-      inset 0 1px 0 rgba(255, 255, 255, 0.3);
   }
 `;
 
-// 메인 콘텐츠 영역
-const ObjectInfoContent = styled.div`
-  flex: 1;
-  padding: 25px;
-  overflow-y: auto;
-  background: 
-    radial-gradient(circle at 20% 20%, rgba(218, 165, 32, 0.05) 0%, transparent 50%),
-    radial-gradient(circle at 80% 80%, rgba(139, 69, 19, 0.05) 0%, transparent 50%),
-    #f4e8d0;
-  color: #2c1810;
-  position: relative;
-  z-index: 2;
-  
-  &::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: 
-      repeating-linear-gradient(
-        90deg,
-        transparent,
-        transparent 20px,
-        rgba(139, 69, 19, 0.02) 20px,
-        rgba(139, 69, 19, 0.02) 21px
-      );
-    pointer-events: none;
-  }
-  
-  /* 스크롤바 스타일링 */
-  &::-webkit-scrollbar {
-    width: 12px;
-  }
-  
-  &::-webkit-scrollbar-track {
-    background: rgba(139, 69, 19, 0.2);
-    border-radius: 6px;
-  }
-  
-  &::-webkit-scrollbar-thumb {
-    background: linear-gradient(135deg, #8b4513, #654321);
-    border-radius: 6px;
-    border: 1px solid #daa520;
-  }
-  
-  &::-webkit-scrollbar-thumb:hover {
-    background: linear-gradient(135deg, #654321, #8b4513);
-  }
-`;
-
-// 객체 이미지
-const ObjectImage = styled.img`
-  width: 100%;
-  max-width: 250px;
-  height: auto;
-  border-radius: 8px;
-  margin-bottom: 20px;
-  border: 3px solid #8b4513;
-  box-shadow: 
-    0 6px 16px rgba(0, 0, 0, 0.4),
-    inset 0 1px 0 rgba(255, 255, 255, 0.2);
-  position: relative;
-  z-index: 1;
-`;
-
-// 객체 설명 텍스트
-const ObjectDescription = styled.div`
-  font-size: 16px;
-  line-height: 1.6;
-  color: #2c1810;
-  font-family: 'Crimson Text', serif;
-  margin-bottom: 25px;
-  white-space: pre-wrap;
-  background: rgba(255, 255, 255, 0.1);
-  padding: 15px;
-  border-radius: 6px;
-  border: 1px solid rgba(139, 69, 19, 0.3);
-  position: relative;
-  z-index: 1;
-`;
-
-// 객체 상세 정보
-const ObjectDetails = styled.div`
-  background: linear-gradient(135deg, #e6d3b0 0%, #d4c2a0 100%);
-  border: 2px solid #8b4513;
-  border-radius: 8px;
-  padding: 20px;
-  margin-bottom: 25px;
-  box-shadow: 
-    0 4px 12px rgba(0, 0, 0, 0.3),
-    inset 0 1px 0 rgba(255, 255, 255, 0.2);
-  position: relative;
-  z-index: 1;
-  
-  &::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: 
-      repeating-linear-gradient(
-        45deg,
-        transparent,
-        transparent 15px,
-        rgba(139, 69, 19, 0.02) 15px,
-        rgba(139, 69, 19, 0.02) 17px
-      );
-    pointer-events: none;
-    border-radius: 6px;
-  }
-`;
-
-// 상세 정보 항목
-const DetailItem = styled.div`
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 12px;
-  font-size: 15px;
-  position: relative;
-  z-index: 1;
-  
-  &:last-child {
-    margin-bottom: 0;
-  }
-`;
-
-const DetailLabel = styled.span`
-  color: #8b4513;
-  font-weight: 600;
-  font-family: 'Cinzel', serif;
-`;
-
-const DetailValue = styled.span`
-  color: #2c1810;
-  font-weight: 600;
-  font-family: 'Crimson Text', serif;
-`;
-
-// 하단 액션 버튼들
-const ActionButtons = styled.div`
-  display: flex;
-  gap: 15px;
-  padding: 20px 25px;
-  background: linear-gradient(135deg, #8b4513 0%, #704214 100%);
-  border-top: 3px solid #daa520;
-  position: relative;
-  z-index: 2;
-  
-  &::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 1px;
-    background: linear-gradient(90deg, transparent, #daa520, transparent);
-  }
-`;
-
-const ActionButton = styled.button`
-  background: ${props => {
-    switch(props.$type) {
-      case 'primary': return 'linear-gradient(135deg, #3498db, #2980b9)';
-      case 'success': return 'linear-gradient(135deg, #27ae60, #229954)';
-      case 'warning': return 'linear-gradient(135deg, #f39c12, #e67e22)';
-      default: return 'linear-gradient(135deg, #8b4513, #654321)';
-    }
-  }};
-  color: #f4e8d0;
-  border: 2px solid #8b4513;
-  border-radius: 4px;
-  padding: 12px 24px;
+const CloseButton = styled.button`
+  position: absolute;
+  top: 18px;
+  right: 24px;
+  background: none;
+  border: none;
+  color: #333;
+  font-size: 1.7rem;
+  font-weight: bold;
   cursor: pointer;
-  font-size: 14px;
-  font-weight: 600;
-  font-family: 'Cinzel', serif;
-  transition: all 0.3s ease;
-  flex: 1;
-  box-shadow: 
-    0 2px 4px rgba(0, 0, 0, 0.3),
-    inset 0 1px 0 rgba(255, 255, 255, 0.2);
-  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.3);
-  
-  &:hover {
-    transform: translateY(-1px);
-    box-shadow: 
-      0 4px 8px rgba(0, 0, 0, 0.4),
-      inset 0 1px 0 rgba(255, 255, 255, 0.3);
-  }
-  
-  &:active {
-    transform: translateY(0);
-    box-shadow: 
-      0 2px 4px rgba(0, 0, 0, 0.3),
-      inset 0 1px 0 rgba(255, 255, 255, 0.1);
-  }
-  
-  &:disabled {
-    background: linear-gradient(135deg, #7f8c8d, #95a5a6);
-    opacity: 0.6;
-    cursor: not-allowed;
-    transform: none;
-  }
+  z-index: 10;
+  opacity: 0.7;
+  &:hover { opacity: 1; }
 `;
 
-// 알림 메시지
-const NotificationMessage = styled.div`
-  background: ${props => props.$type === 'success' 
-    ? 'linear-gradient(135deg, rgba(39, 174, 96, 0.2), rgba(46, 204, 113, 0.1))' 
-    : 'linear-gradient(135deg, rgba(231, 76, 60, 0.2), rgba(192, 57, 43, 0.1))'};
-  color: ${props => props.$type === 'success' ? '#27ae60' : '#c0392b'};
-  border: 2px solid ${props => props.$type === 'success' ? '#27ae60' : '#c0392b'};
-  border-radius: 6px;
-  padding: 15px;
-  margin-bottom: 20px;
-  text-align: center;
-  font-size: 15px;
-  font-weight: 600;
-  font-family: 'Cinzel', serif;
-  box-shadow: 
-    0 2px 8px rgba(0, 0, 0, 0.2),
-    inset 0 1px 0 rgba(255, 255, 255, 0.1);
-  position: relative;
-  z-index: 1;
-  
-  &::before {
-    content: ${props => props.$type === 'success' ? "'✓'" : "'⚠'"};
-    font-size: 18px;
-    margin-right: 8px;
-  }
-`;
+const ObjectInfo = ({ objectData, onClose, onItemAcquired, onClueAdded, currentActCount }) => {
+  const [showDetailPanel, setShowDetailPanel] = useState(false);
+  const [isInvestigationComplete, setIsInvestigationComplete] = useState(false);
+  const [requiredQuestions, setRequiredQuestions] = useState(3);
+  const [investigationStartCount, setInvestigationStartCount] = useState(null);
+  const [showCompletionAlert, setShowCompletionAlert] = useState(false);
+  const [showWarningAlert, setShowWarningAlert] = useState(false);
+  const [warningMessage, setWarningMessage] = useState('');
 
-const ObjectInfo = ({ objectData, onClose, onItemAcquired, onClueAdded }) => {
-  const [notification, setNotification] = useState(null);
-  
-  // 알림 메시지 표시
-  const showNotification = (message, type = 'success') => {
-    setNotification({ message, type });
-    setTimeout(() => setNotification(null), 3000);
-  };
-  
-  // 아이템 획득 처리
-  const handleAcquireItem = () => {
-    if (objectData.type === 'item') {
-      showNotification('아이템을 획득했습니다!', 'success');
-      setTimeout(() => {
-        onItemAcquired && onItemAcquired(objectData);
-        onClose();
-      }, 1500);
+  useEffect(() => {
+    if (objectData) {
+      // data 컬럼에서 필요한 질문 수 파싱
+      try {
+        const data = JSON.parse(objectData.data || '{}');
+        const required = data.requiredQuestions || 3;
+        setRequiredQuestions(required);
+        
+        // 조사 상태 확인
+        const investigationKey = `investigation_${objectData.id}`;
+        const storedData = JSON.parse(localStorage.getItem(investigationKey) || '{}');
+        setIsInvestigationComplete(storedData.isComplete || false);
+        setInvestigationStartCount(storedData.startCount);
+      } catch (error) {
+        console.error('objectData.data 파싱 에러:', error);
+        setRequiredQuestions(3);
+      }
     }
-  };
-  
-  // 단서 추가 처리
-  const handleAddClue = () => {
-    if (objectData.type === 'clue' || objectData.type === 'evidence') {
-      showNotification('단서장에 추가되었습니다!', 'success');
-      setTimeout(() => {
-        onClueAdded && onClueAdded(objectData);
-        onClose();
-      }, 1500);
+  }, [objectData]);
+
+  // currentActCount 변경 시 조사 진행도 실시간 업데이트
+  useEffect(() => {
+    if (investigationStartCount !== null && !isInvestigationComplete) {
+      const currentProgress = investigationStartCount - currentActCount;
+      
+      // 필요한 질문 수에 도달했는지 체크
+      if (currentProgress >= requiredQuestions) {
+        // 자동으로 조사 완료 처리는 하지 않고, 사용자가 버튼을 클릭하도록 유지
+        // 하지만 진행도는 실시간으로 업데이트됨
+      }
     }
-  };
-  
-  // 객체 조사 처리
-  const handleInvestigate = () => {
-    showNotification('자세히 조사했습니다.', 'success');
-  };
-  
-  // 객체 타입에 따른 아이콘 결정
-  const getObjectIcon = (type) => {
-    switch(type) {
-      case 'item': return '🎒';
-      case 'clue': return '🔍';
-      case 'evidence': return '📋';
-      case 'book': return '📚';
-      case 'notepad': return '📝';
-      case 'door': return '🚪';
-      default: return '❓';
+  }, [currentActCount, investigationStartCount, requiredQuestions, isInvestigationComplete]);
+
+  // 완료 알림 자동 숨김
+  useEffect(() => {
+    if (showCompletionAlert) {
+      const timer = setTimeout(() => {
+        setShowCompletionAlert(false);
+      }, 4000);
+      return () => clearTimeout(timer);
     }
-  };
-  
-  // 객체 타입에 따른 한국어 이름
-  const getObjectTypeName = (type) => {
-    switch(type) {
-      case 'item': return '아이템';
-      case 'clue': return '단서';
-      case 'evidence': return '증거';
-      case 'book': return '책';
-      case 'notepad': return '메모장';
-      case 'door': return '문';
-      default: return '객체';
+  }, [showCompletionAlert]);
+
+  // 경고 알림 자동 숨김
+  useEffect(() => {
+    if (showWarningAlert) {
+      const timer = setTimeout(() => {
+        setShowWarningAlert(false);
+      }, 3000);
+      return () => clearTimeout(timer);
     }
-  };
-  
+  }, [showWarningAlert]);
+
   if (!objectData) return null;
-  
+
+  // 현재 진행 중인 다른 조사가 있는지 확인
+  const checkActiveInvestigation = () => {
+    const allKeys = Object.keys(localStorage);
+    for (const key of allKeys) {
+      if (key.startsWith('investigation_') && key !== `investigation_${objectData.id}`) {
+        try {
+          const data = JSON.parse(localStorage.getItem(key) || '{}');
+          if (data.startCount !== undefined && !data.isComplete) {
+            const investigationId = key.replace('investigation_', '');
+            return investigationId;
+          }
+        } catch (error) {
+          continue;
+        }
+      }
+    }
+    return null;
+  };
+
+  // '자세히 조사' 버튼 클릭 핸들러
+  const handleInspect = () => {
+    // 이미 완료된 조사는 바로 패널 열기
+    if (isInvestigationComplete) {
+      setShowDetailPanel(true);
+      return;
+    }
+
+    // 다른 진행 중인 조사가 있는지 확인
+    const activeInvestigationId = checkActiveInvestigation();
+    if (activeInvestigationId) {
+      setWarningMessage('한 번에 하나의 단서만 조사할 수 있습니다. 진행 중인 조사를 완료해주세요.');
+      setShowWarningAlert(true);
+      return;
+    }
+
+    // 새로운 조사 시작
+    const investigationKey = `investigation_${objectData.id}`;
+    const newInvestigationData = {
+      startCount: currentActCount,
+      isComplete: false,
+      objectName: objectData.name
+    };
+    localStorage.setItem(investigationKey, JSON.stringify(newInvestigationData));
+    setInvestigationStartCount(currentActCount);
+    setShowDetailPanel(true);
+  };
+
+  // 상세 패널 닫기
+  const handleCloseDetail = () => {
+    setShowDetailPanel(false);
+  };
+
+  // 조사 완료 처리
+  const handleCompleteInvestigation = () => {
+    const investigationKey = `investigation_${objectData.id}`;
+    const updatedData = {
+      startCount: investigationStartCount,
+      isComplete: true,
+      objectName: objectData.name
+    };
+    localStorage.setItem(investigationKey, JSON.stringify(updatedData));
+    setIsInvestigationComplete(true);
+    setShowCompletionAlert(true);
+  };
+
+  // 현재 객체의 개별 진행 상황 계산
+  const getIndividualProgress = () => {
+    if (investigationStartCount === null) return 0;
+    return investigationStartCount - currentActCount;
+  };
+
+  const individualProgress = getIndividualProgress();
+  const canAccessDetail = individualProgress >= requiredQuestions || isInvestigationComplete;
+
+  // 렌더링할 상세 내용 가져오기
+  const getDetailContent = () => {
+    try {
+      const data = JSON.parse(objectData.data || '{}');
+      return data.content || data.description || '상세 정보가 없습니다.';
+    } catch (error) {
+      return objectData.data || '상세 정보가 없습니다.';
+    }
+  };
+
   return (
-    <ObjectInfoContainer>
-      {/* 헤더 */}
-      <ObjectInfoHeader>
-        <ObjectTitle>
-          <span>{getObjectIcon(objectData.type)}</span>
-          {objectData.name}
-        </ObjectTitle>
-        <CloseButton onClick={onClose}>✕ 닫기</CloseButton>
-      </ObjectInfoHeader>
-      
-      {/* 메인 콘텐츠 */}
-      <ObjectInfoContent>
-        {/* 알림 메시지 */}
-        {notification && (
-          <NotificationMessage $type={notification.type}>
-            {notification.message}
-          </NotificationMessage>
+    <>
+      {/* 조사 완료 알림 */}
+      {showCompletionAlert && (
+        <InvestigationCompleteAlert>
+          🔍 "{objectData.name}" 조사 완료!<br/>
+          상세 정보를 확인할 수 있습니다.
+        </InvestigationCompleteAlert>
+      )}
+
+      {/* 경고 알림 */}
+      {showWarningAlert && (
+        <WarningAlert>
+          ⚠️ {warningMessage}
+        </WarningAlert>
+      )}
+
+      <SimpleContainer $bgimage={objectData.imageUrl} $shifted={showDetailPanel}>
+        <CloseButton onClick={onClose}>✕</CloseButton>
+        <InfoBox>
+          <DescriptionText>
+            {objectData.description || '이 객체에 대한 설명이 없습니다.'}
+          </DescriptionText>
+          <InspectButton onClick={handleInspect}>조사 시작하기</InspectButton>
+        </InfoBox>
+      </SimpleContainer>
+
+      <DetailPanel $show={showDetailPanel}>
+        {canAccessDetail ? (
+          // 조사 완료 시 상세 내용 표시
+          <>
+            <InvestigationIcon>🔍</InvestigationIcon>
+            <InvestigationText>조사 완료!</InvestigationText>
+            <DetailContent>
+              {getDetailContent()}
+            </DetailContent>
+            <CloseDetailButton onClick={handleCloseDetail}>
+              돌아가기
+            </CloseDetailButton>
+          </>
+        ) : (
+          // 조사 중 상태 표시
+          <>
+            <InvestigationIcon>🔍</InvestigationIcon>
+            <InvestigationText>
+              "{objectData.name}" 조사 중입니다.
+            </InvestigationText>
+            <RequiredQuestionsText>
+              {requiredQuestions}번의 질의응답 후 확인 가능합니다.
+            </RequiredQuestionsText>
+            <RequiredQuestionsText>
+              (이 단서 진행: {individualProgress}/{requiredQuestions})
+            </RequiredQuestionsText>
+            {individualProgress >= requiredQuestions && !isInvestigationComplete && (
+              <InspectButton onClick={handleCompleteInvestigation}>
+                조사 완료하기
+              </InspectButton>
+            )}
+            <CloseDetailButton onClick={handleCloseDetail}>
+              돌아가기
+            </CloseDetailButton>
+          </>
         )}
-        
-        {/* 객체 이미지 */}
-        {objectData.imageUrl && (
-          <ObjectImage src={objectData.imageUrl} alt={objectData.name} />
-        )}
-        
-        {/* 객체 설명 */}
-        <ObjectDescription>
-          {objectData.description || '이 객체에 대한 설명이 없습니다.'}
-        </ObjectDescription>
-        
-        {/* 상세 정보 */}
-        <ObjectDetails>
-          <DetailItem>
-            <DetailLabel>종류:</DetailLabel>
-            <DetailValue>{getObjectTypeName(objectData.type)}</DetailValue>
-          </DetailItem>
-          
-          {objectData.type === 'item' && (
-            <DetailItem>
-              <DetailLabel>상태:</DetailLabel>
-              <DetailValue>획득 가능</DetailValue>
-            </DetailItem>
-          )}
-          
-          {(objectData.type === 'clue' || objectData.type === 'evidence') && (
-            <DetailItem>
-              <DetailLabel>중요도:</DetailLabel>
-              <DetailValue>높음</DetailValue>
-            </DetailItem>
-          )}
-          
-          {objectData.location && (
-            <DetailItem>
-              <DetailLabel>위치:</DetailLabel>
-              <DetailValue>{objectData.location}</DetailValue>
-            </DetailItem>
-          )}
-        </ObjectDetails>
-      </ObjectInfoContent>
-      
-      {/* 하단 액션 버튼들 */}
-      <ActionButtons>
-        {objectData.type === 'item' && (
-          <ActionButton $type="success" onClick={handleAcquireItem}>
-            🎒 아이템 획득
-          </ActionButton>
-        )}
-        
-        {(objectData.type === 'clue' || objectData.type === 'evidence') && (
-          <ActionButton $type="primary" onClick={handleAddClue}>
-            📋 단서장에 추가
-          </ActionButton>
-        )}
-        
-        {(objectData.type === 'book' || objectData.type === 'notepad') && (
-          <ActionButton $type="warning" onClick={handleInvestigate}>
-            🔍 자세히 조사
-          </ActionButton>
-        )}
-        
-        <ActionButton onClick={onClose}>
-          ✕ 닫기
-        </ActionButton>
-      </ActionButtons>
-    </ObjectInfoContainer>
+      </DetailPanel>
+    </>
   );
 };
 

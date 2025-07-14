@@ -97,6 +97,7 @@ model Playthrough {
   createdAt  DateTime  @default(now())
   playTimeInSeconds   Int       @default(0)
   userId     Int
+  remainingQuestions Int   @default(30)
   scenarioId Int
   chatLogs   ChatLog[]
   scenario   Scenario  @relation(fields: [scenarioId], references: [id])

@@ -12,6 +12,72 @@ import MemoModal from '../components/MemoModal';
 import gameBackground from '../assets/images/game_background.png';
 import streetBackground from '../assets/images/street_background.png';
 
+// Act 카운트 표시 컨테이너 스타일 추가
+const ActCounterContainer = styled.div`
+  min-width: 54px;
+  padding: 4px 10px 1px 10px;
+  margin: 0 0 0 16px;
+  background: linear-gradient(135deg, #fffbe6 0%, #ffe4a1 100%);
+  color: #8b4513;
+  font-family: 'Cinzel', serif;
+  font-size: 15px;
+  font-weight: bold;
+  border: 2px solid #daa520;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(218,165,32,0.12);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  letter-spacing: 1px;
+  position: relative;
+  transition: box-shadow 0.4s, border-color 0.4s, transform 0.4s;
+  z-index: 2;
+  ${props => props.$highlight && `
+    box-shadow: 0 0 16px 4px #ffd700, 0 0 32px 8px #fffbe6;
+    border-color: #ffb700;
+    transform: scale(1.12);
+    animation: actHighlightPulse 1.2s cubic-bezier(.4,0,.2,1) 0s 2 alternate;
+  `}
+  @keyframes actHighlightPulse {
+    0% { box-shadow: 0 0 8px 2px #ffd700; border-color: #daa520; }
+    100% { box-shadow: 0 0 24px 8px #ffd700; border-color: #ffb700; }
+  }
+`;
+
+// Act 카운트 설명 텍스트 스타일 추가
+const ActDescription = styled.div`
+  font-size: 10px;
+  color: #b8860b;
+  font-family: 'Crimson Text', serif;
+  font-weight: 400;
+  margin-top: 1px;
+  text-align: center;
+  opacity: 0.85;
+`;
+
+// 네비게이션 바 레이아웃 개선: 타이틀 중앙 고정
+const TopNavBarLayout = styled.div`
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: relative;
+`;
+
+const CenteredTitle = styled.div`
+  position: absolute;
+  left: 50%;
+  top: 0;
+  transform: translateX(-50%);
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  z-index: 10;
+`;
+
 // 게임 페이지 컨테이너 (전체 화면)
 const GamePageContainer = styled.div`
   width: 100vw;
@@ -372,6 +438,11 @@ const GamePage = () => {
   // 방 전환 애니메이션 상태
   const [isRoomTransitioning, setIsRoomTransitioning] = useState(false);
 
+  // Act 카운트 상태 및 애니메이션 상태 추가
+  const [actCount, setActCount] = useState(30); // 기본값 예시
+  const [actLimit, setActLimit] = useState(30); // 기본값 예시
+  const [showActHighlight, setShowActHighlight] = useState(false);
+
   // 게임 데이터 로드
   useEffect(() => {
     const fetchGameData = async () => {
@@ -424,6 +495,37 @@ const GamePage = () => {
       fetchGameData();
     }
   }, [playthroughId, token]);
+
+  // (가정된) 백엔드 API에서 actCount, actLimit을 받아오는 함수
+  const fetchActInfo = async () => {
+    // 실제 API에서 remainingQuestions를 actCount로 사용
+    if (gameData) {
+      // gameData에서 remainingQuestions를 actCount로, actLimit은 기본값 30 사용
+      setActCount(gameData.remainingQuestions ?? 30);
+      setActLimit(30); // 시나리오의 초기 행동력 제한을 30으로 설정
+    }
+  };
+
+  // 게임 데이터 로드 후 act 정보 세팅 및 하이라이트 애니메이션
+  useEffect(() => {
+    if (gameData) {
+      fetchActInfo();
+      setShowActHighlight(true);
+      const timer = setTimeout(() => setShowActHighlight(false), 1800);
+      return () => clearTimeout(timer);
+    }
+  }, [gameData]);
+
+  // Act 카운트 감소 함수 (예: 채팅 등에서 호출)
+  const decreaseActCount = () => {
+    setActCount(prev => Math.max(0, prev - 1));
+    // TODO: 백엔드 API 연동 필요
+  };
+
+  // 실제 API에서 행동력 업데이트 후 상태 반영
+  const handleActCountDecrease = () => {
+    setActCount(prev => Math.max(0, prev - 1));
+  };
 
   // 방 전환 함수 (컴포넌트 내 다른 곳에서 사용)
   const switchRoom = async (room) => {
@@ -632,19 +734,29 @@ const GamePage = () => {
     <GamePageContainer>
       {/* 상단 네비게이션 바 */}
       <TopNavBar>
-        <NavButtonGroup>
-          <NavButton onClick={handleGoBack}>🎭 뒤로</NavButton>
-          <NavButton onClick={handleGoHome}>🏛️ 홈</NavButton>
-        </NavButtonGroup>
-        
-        <GameTitle>
-          {currentRoom ? `${gameData?.scenarioTitle || '탐정 게임'} - ${currentRoom.name}` : gameData?.scenarioTitle || '탐정 게임'}
-        </GameTitle>
-        
-        <NavButtonGroup>
-          <NavButton onClick={handleOpenChatLog}>📜 채팅 로그</NavButton>
-          <NavButton $primary onClick={handleOpenMemo}>🔍 메모장</NavButton>
-        </NavButtonGroup>
+        <TopNavBarLayout>
+          <NavButtonGroup>
+            <NavButton onClick={handleGoBack}>🎭 뒤로</NavButton>
+            <NavButton onClick={handleGoHome}>🏛️ 홈</NavButton>
+          </NavButtonGroup>
+
+          <CenteredTitle>
+            <GameTitle>
+              {currentRoom ? `${gameData?.scenarioTitle || '탐정 게임'} - ${currentRoom.name}` : gameData?.scenarioTitle || '탐정 게임'}
+            </GameTitle>
+          </CenteredTitle>
+
+          <div style={{ display: 'flex', alignItems: 'center' }}>
+            <NavButtonGroup>
+              <NavButton onClick={handleOpenChatLog}>📜 채팅 로그</NavButton>
+              <NavButton $primary onClick={handleOpenMemo}>🔍 메모장</NavButton>
+            </NavButtonGroup>
+            <ActCounterContainer $highlight={showActHighlight}>
+              {actCount} / {actLimit}
+              <ActDescription>가능한 총 질의응답 횟수</ActDescription>
+            </ActCounterContainer>
+          </div>
+        </TopNavBarLayout>
       </TopNavBar>
 
       {/* 메인 게임 화면 */}
@@ -695,6 +807,8 @@ const GamePage = () => {
             playthroughId={playthroughId}
             currentInteraction={currentInteraction}
             onClose={handleCloseChatBox}
+            onActCountDecrease={handleActCountDecrease}
+            currentActCount={actCount}
           />
         </ChatArea>
 
@@ -705,6 +819,7 @@ const GamePage = () => {
             onClose={handleCloseObjectInfo}
             onItemAcquired={handleItemAcquired}
             onClueAdded={handleClueAdded}
+            currentActCount={actCount}
           />
         </ChatArea>
       </GameScreen>
