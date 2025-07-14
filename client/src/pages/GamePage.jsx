@@ -485,21 +485,71 @@ const GamePage = () => {
     switch (element.type) {
       case 'npc':
         // NPC와 대화 시작 (채팅창 표시)
-        setCurrentInteraction(element);
-        setShowChatBox(true);
+        console.log('NPC 클릭:', element);
+        try {
+          const npcData = JSON.parse(element.data || '{}');
+          console.log('NPC 데이터:', npcData);
+          
+          // NPC 정보를 포함한 상호작용 객체 생성
+          const npcInteraction = {
+            ...element,
+            npcId: npcData.npcId,
+            npcName: npcData.npcName
+          };
+          
+          setCurrentInteraction(npcInteraction);
+          setShowChatBox(true);
+        } catch (err) {
+          console.error('NPC 데이터 파싱 에러:', err);
+          alert('NPC와 대화를 시작할 수 없습니다.');
+        }
         break;
       case 'door':
+        console.log('문 클릭:', element);
         // 문 열기/방 이동
         try {
           const data = JSON.parse(element.data || '{}');
-          if (data.targetRoomId) {
-            const targetRoom = rooms.find(room => room.id === data.targetRoomId);
+          console.log('문 데이터:', data);
+          
+          // 키가 필요한 문인지 확인
+          if (data.requiresKey && data.requiredKeyName) {
+            // 키를 보유하고 있는지 확인 (현재는 간단히 localStorage 사용)
+            const hasKey = localStorage.getItem(`hasKey_${data.requiredKeyName}`) === 'true';
+            if (!hasKey) {
+              alert(data.lockedMessage || `${data.requiredKeyName}가 필요합니다.`);
+              return;
+            }
+          }
+          
+          // 방 이름으로 대상 방 찾기
+          if (data.targetRoomName) {
+            console.log('대상 방 이름:', data.targetRoomName);
+            const targetRoom = rooms.find(room => room.name === data.targetRoomName);
+            console.log('찾은 방:', targetRoom);
             if (targetRoom) {
               await switchRoom(targetRoom);
+            } else {
+              console.error('대상 방을 찾을 수 없음:', data.targetRoomName);
+              alert('해당 방을 찾을 수 없습니다.');
             }
           }
         } catch (err) {
           console.error('방 이동 중 에러:', err);
+          alert('방 이동 중 오류가 발생했습니다.');
+        }
+        break;
+      case 'key':
+        // 키 획득 처리
+        console.log('키 획득:', element);
+        const keyName = element.name;
+        const hasKeyAlready = localStorage.getItem(`hasKey_${keyName}`) === 'true';
+        
+        if (!hasKeyAlready) {
+          localStorage.setItem(`hasKey_${keyName}`, 'true');
+          handleItemAcquired(element);
+          alert(`${keyName}을(를) 획득했습니다!`);
+        } else {
+          alert('이미 보유하고 있는 키입니다.');
         }
         break;
       case 'book':

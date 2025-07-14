@@ -18,47 +18,102 @@ const ModalOverlay = styled.div`
 
 // 모달 컨테이너
 const ModalContainer = styled.div`
-  background: #2c3e50;
-  border-radius: 12px;
-  width: 80%;
-  max-width: 800px;
-  height: 70%;
-  max-height: 600px;
+  background: 
+    linear-gradient(135deg, #f4e8d0 0%, #e6d3b0 100%);
+  border: 3px solid #8b4513;
+  border-radius: 8px;
+  width: 95%;
+  max-width: 1200px;
+  height: 90%;
+  max-height: 900px;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  box-shadow: 
+    0 20px 40px rgba(0, 0, 0, 0.6),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
   overflow: hidden;
+  font-family: 'Crimson Text', serif;
+  position: relative;
+  
+  &::before {
+    content: '';
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    right: 10px;
+    bottom: 10px;
+    border: 1px solid rgba(139, 69, 19, 0.3);
+    border-radius: 4px;
+    pointer-events: none;
+  }
 `;
 
 // 모달 헤더
 const ModalHeader = styled.div`
-  background: #34495e;
-  color: white;
+  background: linear-gradient(135deg, #8b4513 0%, #704214 100%);
+  color: #daa520;
   padding: 20px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  border-bottom: 1px solid #4a5568;
+  border-bottom: 3px solid #daa520;
+  border-top-left-radius: 4px;
+  border-top-right-radius: 4px;
+  position: relative;
+  z-index: 2;
+  
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, #daa520, transparent);
+  }
 `;
 
 const ModalTitle = styled.h2`
   margin: 0;
   font-size: 18px;
   font-weight: 600;
+  font-family: 'Cinzel', serif;
+  text-shadow: 
+    2px 2px 4px rgba(0, 0, 0, 0.8),
+    0 0 10px rgba(218, 165, 32, 0.3);
+  position: relative;
+  
+  &::before,
+  &::after {
+    content: '◆';
+    color: #b8860b;
+    font-size: 0.8em;
+    margin: 0 10px;
+    opacity: 0.7;
+  }
 `;
 
 const CloseButton = styled.button`
-  background: #e74c3c;
-  color: white;
-  border: none;
+  background: linear-gradient(135deg, #cd853f, #a0522d);
+  color: #f4e8d0;
+  border: 2px solid #8b4513;
+  border-radius: 4px;
   padding: 8px 16px;
-  border-radius: 6px;
   cursor: pointer;
   font-size: 14px;
-  transition: background 0.3s ease;
+  font-family: 'Cinzel', serif;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  box-shadow: 
+    0 2px 4px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
   
   &:hover {
-    background: #c0392b;
+    background: linear-gradient(135deg, #a0522d, #cd853f);
+    transform: translateY(-1px);
+    box-shadow: 
+      0 4px 8px rgba(0, 0, 0, 0.4),
+      inset 0 1px 0 rgba(255, 255, 255, 0.3);
   }
 `;
 
@@ -67,7 +122,50 @@ const ChatListContainer = styled.div`
   flex: 1;
   overflow-y: auto;
   padding: 20px;
-  background: #34495e;
+  background: 
+    radial-gradient(circle at 20% 20%, rgba(218, 165, 32, 0.05) 0%, transparent 50%),
+    radial-gradient(circle at 80% 80%, rgba(139, 69, 19, 0.05) 0%, transparent 50%),
+    #f4e8d0;
+  position: relative;
+  z-index: 2;
+  
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: 
+      repeating-linear-gradient(
+        90deg,
+        transparent,
+        transparent 20px,
+        rgba(139, 69, 19, 0.02) 20px,
+        rgba(139, 69, 19, 0.02) 21px
+      );
+    pointer-events: none;
+  }
+  
+  /* 스크롤바 스타일링 */
+  &::-webkit-scrollbar {
+    width: 10px;
+  }
+  
+  &::-webkit-scrollbar-track {
+    background: rgba(139, 69, 19, 0.2);
+    border-radius: 4px;
+  }
+  
+  &::-webkit-scrollbar-thumb {
+    background: linear-gradient(135deg, #8b4513, #654321);
+    border-radius: 4px;
+    border: 1px solid #daa520;
+  }
+  
+  &::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(135deg, #654321, #8b4513);
+  }
 `;
 
 // 채팅 메시지 아이템
@@ -75,13 +173,41 @@ const ChatMessageItem = styled.div`
   display: flex;
   flex-direction: column;
   margin-bottom: 16px;
-  padding: 12px;
-  border-radius: 8px;
-  background: ${props => props.$isUserMessage ? '#3498db' : '#2c3e50'};
-  border-left: 4px solid ${props => props.$isUserMessage ? '#2980b9' : '#e74c3c'};
+  padding: 15px;
+  border-radius: 6px;
+  background: ${props => props.$isUserMessage 
+    ? 'linear-gradient(135deg, #daa520, #b8860b)' 
+    : 'linear-gradient(135deg, #e6d3b0, #d4c2a0)'};
+  border: 1px solid ${props => props.$isUserMessage ? '#8b4513' : '#c4a67a'};
+  color: ${props => props.$isUserMessage ? '#1c1c1c' : '#2c1810'};
+  box-shadow: 
+    0 2px 8px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  position: relative;
   ${props => props.$isHighlighted && `
-    box-shadow: 0 0 0 2px #f39c12;
+    box-shadow: 
+      0 0 0 2px #f39c12,
+      0 2px 8px rgba(0, 0, 0, 0.3),
+      inset 0 1px 0 rgba(255, 255, 255, 0.2);
   `}
+  
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: 
+      repeating-linear-gradient(
+        90deg,
+        transparent,
+        transparent 20px,
+        rgba(139, 69, 19, 0.03) 20px,
+        rgba(139, 69, 19, 0.03) 21px
+      );
+    pointer-events: none;
+  }
 `;
 
 // 메시지 헤더 (발신자 정보)
@@ -94,53 +220,106 @@ const MessageHeader = styled.div`
 
 const SenderName = styled.span`
   font-weight: 600;
-  color: ${props => props.$isUserMessage ? '#ecf0f1' : '#f39c12'};
+  color: ${props => props.$isUserMessage ? '#1c1c1c' : '#8b4513'};
   font-size: 14px;
+  font-family: 'Cinzel', serif;
+  text-shadow: ${props => props.$isUserMessage ? 
+    '0 1px 0 rgba(255, 255, 255, 0.2)' : 
+    '0 1px 0 rgba(0, 0, 0, 0.2)'};
 `;
 
 const MessageTime = styled.span`
-  color: #bdc3c7;
+  color: ${props => props.$isUserMessage ? 'rgba(28, 28, 28, 0.7)' : 'rgba(139, 69, 19, 0.7)'};
   font-size: 12px;
+  font-family: 'Crimson Text', serif;
 `;
 
 const HighlightIndicator = styled.span`
-  background: #f39c12;
-  color: white;
-  padding: 2px 6px;
-  border-radius: 10px;
+  background: linear-gradient(135deg, #f39c12, #e67e22);
+  color: #1c1c1c;
+  padding: 3px 8px;
+  border-radius: 4px;
+  border: 1px solid #8b4513;
   font-size: 10px;
-  font-weight: 500;
+  font-weight: 600;
+  font-family: 'Cinzel', serif;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.2);
+  box-shadow: 
+    0 1px 3px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
 `;
 
 // 메시지 내용
 const MessageContent = styled.div`
-  color: #ecf0f1;
-  font-size: 14px;
-  line-height: 1.4;
+  color: ${props => props.$isUserMessage ? '#1c1c1c' : '#2c1810'};
+  font-size: 15px;
+  line-height: 1.5;
   white-space: pre-wrap;
+  font-family: 'Crimson Text', serif;
+  position: relative;
+  z-index: 1;
 `;
 
 // 로딩 및 에러 상태
 const LoadingText = styled.div`
-  color: #bdc3c7;
+  color: #8b4513;
+  font-size: 18px;
+  font-family: 'Cinzel', serif;
   text-align: center;
-  padding: 40px;
-  font-size: 16px;
+  padding: 50px;
+  text-shadow: 
+    0 0 10px rgba(139, 69, 19, 0.3),
+    2px 2px 4px rgba(0, 0, 0, 0.2);
+  position: relative;
+  
+  &::before {
+    content: '📜';
+    display: block;
+    font-size: 32px;
+    margin-bottom: 15px;
+    opacity: 0.7;
+  }
 `;
 
 const ErrorText = styled.div`
-  color: #e74c3c;
+  color: #cd853f;
+  font-size: 18px;
+  font-family: 'Cinzel', serif;
   text-align: center;
-  padding: 40px;
-  font-size: 16px;
+  padding: 50px;
+  text-shadow: 
+    0 0 10px rgba(205, 133, 63, 0.3),
+    2px 2px 4px rgba(0, 0, 0, 0.2);
+  position: relative;
+  
+  &::before {
+    content: '⚠';
+    display: block;
+    font-size: 32px;
+    margin-bottom: 15px;
+    opacity: 0.7;
+  }
 `;
 
 // 빈 상태
 const EmptyState = styled.div`
-  color: #bdc3c7;
+  color: #8b4513;
+  font-size: 18px;
+  font-family: 'Cinzel', serif;
   text-align: center;
-  padding: 40px;
-  font-size: 16px;
+  padding: 50px;
+  text-shadow: 
+    0 0 10px rgba(139, 69, 19, 0.3),
+    2px 2px 4px rgba(0, 0, 0, 0.2);
+  position: relative;
+  
+  &::before {
+    content: '📝';
+    display: block;
+    font-size: 32px;
+    margin-bottom: 15px;
+    opacity: 0.7;
+  }
 `;
 
 const ChatLogModal = ({ playthroughId, token, onClose }) => {

@@ -5,17 +5,35 @@ import styled from 'styled-components';
 const ObjectInfoContainer = styled.div`
   display: flex;
   flex-direction: column;
-  height: 70%;
-  width: 70%;
-  max-width: 600px;
-  background: rgba(0, 0, 0, 0.95);
+  height: 85%;
+  width: 85%;
+  max-width: 800px;
+  background: 
+    linear-gradient(135deg, #f4e8d0 0%, #e6d3b0 100%);
+  border: 3px solid #8b4513;
+  border-radius: 8px;
   position: absolute;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  border-radius: 12px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  box-shadow: 
+    0 20px 40px rgba(0, 0, 0, 0.6),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
   overflow: hidden;
+  font-family: 'Crimson Text', serif;
+  
+  &::before {
+    content: '';
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    right: 10px;
+    bottom: 10px;
+    border: 1px solid rgba(139, 69, 19, 0.3);
+    border-radius: 4px;
+    pointer-events: none;
+    z-index: 1;
+  }
 `;
 
 // 헤더
@@ -23,101 +41,197 @@ const ObjectInfoHeader = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 16px 20px;
-  background: rgba(52, 73, 94, 0.9);
-  border-bottom: 2px solid #34495e;
-  border-top-left-radius: 12px;
-  border-top-right-radius: 12px;
+  padding: 20px;
+  background: linear-gradient(135deg, #8b4513 0%, #704214 100%);
+  border-bottom: 3px solid #daa520;
+  border-top-left-radius: 4px;
+  border-top-right-radius: 4px;
+  position: relative;
+  z-index: 2;
+  
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, #daa520, transparent);
+  }
 `;
 
 // 객체 정보 타이틀
 const ObjectTitle = styled.div`
-  color: white;
+  color: #daa520;
   font-size: 20px;
   font-weight: 600;
+  font-family: 'Cinzel', serif;
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 15px;
+  text-shadow: 
+    2px 2px 4px rgba(0, 0, 0, 0.8),
+    0 0 10px rgba(218, 165, 32, 0.3);
+  
+  &::before,
+  &::after {
+    content: '◆';
+    color: #b8860b;
+    font-size: 0.7em;
+    margin: 0 5px;
+    opacity: 0.7;
+  }
 `;
 
 // 닫기 버튼
 const CloseButton = styled.button`
-  background: linear-gradient(135deg, #e74c3c, #c0392b);
-  color: white;
-  border: none;
-  padding: 8px 12px;
-  border-radius: 6px;
+  background: linear-gradient(135deg, #cd853f, #a0522d);
+  color: #f4e8d0;
+  border: 2px solid #8b4513;
+  border-radius: 4px;
+  padding: 10px 16px;
   cursor: pointer;
   font-size: 14px;
   font-weight: 500;
+  font-family: 'Cinzel', serif;
   transition: all 0.3s ease;
+  box-shadow: 
+    0 2px 4px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
   
   &:hover {
-    background: linear-gradient(135deg, #c0392b, #a93226);
-    transform: translateY(-2px);
+    background: linear-gradient(135deg, #a0522d, #cd853f);
+    transform: translateY(-1px);
+    box-shadow: 
+      0 4px 8px rgba(0, 0, 0, 0.4),
+      inset 0 1px 0 rgba(255, 255, 255, 0.3);
   }
 `;
 
 // 메인 콘텐츠 영역
 const ObjectInfoContent = styled.div`
   flex: 1;
-  padding: 20px;
+  padding: 25px;
   overflow-y: auto;
-  color: white;
+  background: 
+    radial-gradient(circle at 20% 20%, rgba(218, 165, 32, 0.05) 0%, transparent 50%),
+    radial-gradient(circle at 80% 80%, rgba(139, 69, 19, 0.05) 0%, transparent 50%),
+    #f4e8d0;
+  color: #2c1810;
+  position: relative;
+  z-index: 2;
+  
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: 
+      repeating-linear-gradient(
+        90deg,
+        transparent,
+        transparent 20px,
+        rgba(139, 69, 19, 0.02) 20px,
+        rgba(139, 69, 19, 0.02) 21px
+      );
+    pointer-events: none;
+  }
   
   /* 스크롤바 스타일링 */
   &::-webkit-scrollbar {
-    width: 8px;
+    width: 12px;
   }
   
   &::-webkit-scrollbar-track {
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 4px;
+    background: rgba(139, 69, 19, 0.2);
+    border-radius: 6px;
   }
   
   &::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.3);
-    border-radius: 4px;
+    background: linear-gradient(135deg, #8b4513, #654321);
+    border-radius: 6px;
+    border: 1px solid #daa520;
   }
   
   &::-webkit-scrollbar-thumb:hover {
-    background: rgba(255, 255, 255, 0.5);
+    background: linear-gradient(135deg, #654321, #8b4513);
   }
 `;
 
 // 객체 이미지
 const ObjectImage = styled.img`
   width: 100%;
-  max-width: 200px;
+  max-width: 250px;
   height: auto;
   border-radius: 8px;
-  margin-bottom: 16px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  margin-bottom: 20px;
+  border: 3px solid #8b4513;
+  box-shadow: 
+    0 6px 16px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  position: relative;
+  z-index: 1;
 `;
 
 // 객체 설명 텍스트
 const ObjectDescription = styled.div`
   font-size: 16px;
   line-height: 1.6;
-  color: #e8e8e8;
-  margin-bottom: 20px;
+  color: #2c1810;
+  font-family: 'Crimson Text', serif;
+  margin-bottom: 25px;
   white-space: pre-wrap;
+  background: rgba(255, 255, 255, 0.1);
+  padding: 15px;
+  border-radius: 6px;
+  border: 1px solid rgba(139, 69, 19, 0.3);
+  position: relative;
+  z-index: 1;
 `;
 
 // 객체 상세 정보
 const ObjectDetails = styled.div`
-  background: rgba(255, 255, 255, 0.05);
+  background: linear-gradient(135deg, #e6d3b0 0%, #d4c2a0 100%);
+  border: 2px solid #8b4513;
   border-radius: 8px;
-  padding: 16px;
-  margin-bottom: 20px;
+  padding: 20px;
+  margin-bottom: 25px;
+  box-shadow: 
+    0 4px 12px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  position: relative;
+  z-index: 1;
+  
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: 
+      repeating-linear-gradient(
+        45deg,
+        transparent,
+        transparent 15px,
+        rgba(139, 69, 19, 0.02) 15px,
+        rgba(139, 69, 19, 0.02) 17px
+      );
+    pointer-events: none;
+    border-radius: 6px;
+  }
 `;
 
 // 상세 정보 항목
 const DetailItem = styled.div`
   display: flex;
   justify-content: space-between;
-  margin-bottom: 8px;
-  font-size: 14px;
+  margin-bottom: 12px;
+  font-size: 15px;
+  position: relative;
+  z-index: 1;
   
   &:last-child {
     margin-bottom: 0;
@@ -125,22 +239,36 @@ const DetailItem = styled.div`
 `;
 
 const DetailLabel = styled.span`
-  color: #bdc3c7;
-  font-weight: 500;
+  color: #8b4513;
+  font-weight: 600;
+  font-family: 'Cinzel', serif;
 `;
 
 const DetailValue = styled.span`
-  color: white;
+  color: #2c1810;
   font-weight: 600;
+  font-family: 'Crimson Text', serif;
 `;
 
 // 하단 액션 버튼들
 const ActionButtons = styled.div`
   display: flex;
-  gap: 12px;
-  padding: 16px 20px;
-  background: rgba(52, 73, 94, 0.5);
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  gap: 15px;
+  padding: 20px 25px;
+  background: linear-gradient(135deg, #8b4513 0%, #704214 100%);
+  border-top: 3px solid #daa520;
+  position: relative;
+  z-index: 2;
+  
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, #daa520, transparent);
+  }
 `;
 
 const ActionButton = styled.button`
@@ -149,26 +277,41 @@ const ActionButton = styled.button`
       case 'primary': return 'linear-gradient(135deg, #3498db, #2980b9)';
       case 'success': return 'linear-gradient(135deg, #27ae60, #229954)';
       case 'warning': return 'linear-gradient(135deg, #f39c12, #e67e22)';
-      default: return 'linear-gradient(135deg, #95a5a6, #7f8c8d)';
+      default: return 'linear-gradient(135deg, #8b4513, #654321)';
     }
   }};
-  color: white;
-  border: none;
-  padding: 10px 20px;
-  border-radius: 6px;
+  color: #f4e8d0;
+  border: 2px solid #8b4513;
+  border-radius: 4px;
+  padding: 12px 24px;
   cursor: pointer;
   font-size: 14px;
-  font-weight: 500;
+  font-weight: 600;
+  font-family: 'Cinzel', serif;
   transition: all 0.3s ease;
   flex: 1;
+  box-shadow: 
+    0 2px 4px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.3);
   
   &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    transform: translateY(-1px);
+    box-shadow: 
+      0 4px 8px rgba(0, 0, 0, 0.4),
+      inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  }
+  
+  &:active {
+    transform: translateY(0);
+    box-shadow: 
+      0 2px 4px rgba(0, 0, 0, 0.3),
+      inset 0 1px 0 rgba(255, 255, 255, 0.1);
   }
   
   &:disabled {
-    background: rgba(149, 165, 166, 0.5);
+    background: linear-gradient(135deg, #7f8c8d, #95a5a6);
+    opacity: 0.6;
     cursor: not-allowed;
     transform: none;
   }
@@ -176,14 +319,29 @@ const ActionButton = styled.button`
 
 // 알림 메시지
 const NotificationMessage = styled.div`
-  background: ${props => props.$type === 'success' ? 'rgba(39, 174, 96, 0.2)' : 'rgba(231, 76, 60, 0.2)'};
-  color: ${props => props.$type === 'success' ? '#2ecc71' : '#e74c3c'};
-  padding: 12px;
+  background: ${props => props.$type === 'success' 
+    ? 'linear-gradient(135deg, rgba(39, 174, 96, 0.2), rgba(46, 204, 113, 0.1))' 
+    : 'linear-gradient(135deg, rgba(231, 76, 60, 0.2), rgba(192, 57, 43, 0.1))'};
+  color: ${props => props.$type === 'success' ? '#27ae60' : '#c0392b'};
+  border: 2px solid ${props => props.$type === 'success' ? '#27ae60' : '#c0392b'};
   border-radius: 6px;
-  margin-bottom: 16px;
+  padding: 15px;
+  margin-bottom: 20px;
   text-align: center;
-  font-size: 14px;
-  font-weight: 500;
+  font-size: 15px;
+  font-weight: 600;
+  font-family: 'Cinzel', serif;
+  box-shadow: 
+    0 2px 8px rgba(0, 0, 0, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  position: relative;
+  z-index: 1;
+  
+  &::before {
+    content: ${props => props.$type === 'success' ? "'✓'" : "'⚠'"};
+    font-size: 18px;
+    margin-right: 8px;
+  }
 `;
 
 const ObjectInfo = ({ objectData, onClose, onItemAcquired, onClueAdded }) => {
