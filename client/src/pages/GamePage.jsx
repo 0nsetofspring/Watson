@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { getPlaythroughApi, getRoomsApi, getInteractiveObjectsApi } from '../api/game';
+import { getPlaythroughApi } from '../api/game';
 import styled from 'styled-components';
 import ChatBox from '../components/ChatBox';
 import ObjectInfo from '../components/ObjectInfo';
+import ChatLogModal from '../components/ChatLogModal';
+import MemoModal from '../components/MemoModal';
 
 // 게임 배경 이미지 import
 import gameBackground from '../assets/images/game_background.png';
@@ -14,24 +16,68 @@ import streetBackground from '../assets/images/street_background.png';
 const GamePageContainer = styled.div`
   width: 100vw;
   height: 100vh;
-  background-color: #1a1a1a;
+  background: linear-gradient(135deg, #2c1810 0%, #1a0f0a 100%);
   display: flex;
   flex-direction: column;
   overflow: hidden;
   position: relative;
+  font-family: 'Crimson Text', serif;
+  
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: 
+      repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 2px,
+        rgba(139, 69, 19, 0.03) 2px,
+        rgba(139, 69, 19, 0.03) 4px
+      );
+    pointer-events: none;
+    z-index: 1;
+  }
 `;
 
 // 상단 네비게이션 바
 const TopNavBar = styled.div`
   width: 100%;
   height: 60px;
-  background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+  background: linear-gradient(135deg, #8b4513 0%, #704214 100%);
+  border-bottom: 3px solid #daa520;
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 0 20px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+  box-shadow: 
+    0 2px 10px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
   z-index: 1000;
+  position: relative;
+  
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, #daa520, transparent);
+  }
+  
+  &::after {
+    content: '';
+    position: absolute;
+    top: 8px;
+    left: 15px;
+    right: 15px;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(218, 165, 32, 0.3), transparent);
+  }
 `;
 
 // 네비게이션 버튼 그룹
@@ -41,46 +87,99 @@ const NavButtonGroup = styled.div`
 `;
 
 const NavButton = styled.button`
-  background: ${props => props.$primary ? '#e74c3c' : '#34495e'};
-  color: white;
-  border: none;
+  background: ${props => props.$primary ? 
+    'linear-gradient(135deg, #daa520 0%, #b8860b 100%)' : 
+    'linear-gradient(135deg, #8b4513 0%, #654321 100%)'};
+  color: ${props => props.$primary ? '#1c1c1c' : '#f4e8d0'};
+  border: 2px solid ${props => props.$primary ? '#8b4513' : '#daa520'};
+  border-radius: 4px;
   padding: 8px 16px;
-  border-radius: 8px;
   cursor: pointer;
   font-size: 14px;
   font-weight: 500;
+  font-family: 'Cinzel', serif;
+  text-shadow: ${props => props.$primary ? 
+    '0 1px 0 rgba(255, 255, 255, 0.2)' : 
+    '0 1px 0 rgba(0, 0, 0, 0.5)'};
+  box-shadow: 
+    0 2px 4px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
   transition: all 0.3s ease;
   
   &:hover {
-    background: ${props => props.$primary ? '#c0392b' : '#2c3e50'};
-    transform: translateY(-2px);
+    background: ${props => props.$primary ? 
+      'linear-gradient(135deg, #b8860b 0%, #daa520 100%)' : 
+      'linear-gradient(135deg, #654321 0%, #8b4513 100%)'};
+    transform: translateY(-1px);
+    box-shadow: 
+      0 4px 8px rgba(0, 0, 0, 0.4),
+      inset 0 1px 0 rgba(255, 255, 255, 0.3);
   }
   
   &:active {
     transform: translateY(0);
+    box-shadow: 
+      0 2px 4px rgba(0, 0, 0, 0.3),
+      inset 0 1px 0 rgba(255, 255, 255, 0.1);
   }
 `;
 
 // 게임 제목 표시
 const GameTitle = styled.h2`
-  color: white;
+  color: #daa520;
   font-size: 18px;
   font-weight: 600;
+  font-family: 'Cinzel', serif;
   margin: 0;
-  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+  text-shadow: 
+    2px 2px 4px rgba(0, 0, 0, 0.8),
+    0 0 10px rgba(218, 165, 32, 0.3);
+  position: relative;
+  
+  &::before,
+  &::after {
+    content: '◆';
+    color: #b8860b;
+    font-size: 0.8em;
+    margin: 0 10px;
+    opacity: 0.7;
+  }
 `;
 
 // 메인 게임 화면 (배경 + 클릭 가능한 요소들)
 const GameScreen = styled.div`
   flex: 1;
   position: relative;
-  background-image: url(${props => props.$backgroundImage || gameBackground});
-  background-size: cover;
-  background-position: center;
+  background-image: 
+    url(${props => props.$backgroundImage || gameBackground}),
+    radial-gradient(circle at 20% 20%, rgba(218, 165, 32, 0.1) 0%, transparent 50%),
+    radial-gradient(circle at 80% 80%, rgba(139, 69, 19, 0.1) 0%, transparent 50%);
+  background-size: cover, 100% 100%, 100% 100%;
+  background-position: center, center, center;
   background-repeat: no-repeat;
+  background-blend-mode: overlay, multiply, normal;
   overflow: hidden;
   transition: opacity 0.5s ease-in-out;
   opacity: ${props => props.$fadeOut ? 0 : 1};
+  
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: 
+      repeating-linear-gradient(
+        45deg,
+        transparent,
+        transparent 50px,
+        rgba(139, 69, 19, 0.02) 50px,
+        rgba(139, 69, 19, 0.02) 52px
+      );
+    pointer-events: none;
+    z-index: 1;
+  }
 `;
 
 // 클릭 가능한 요소들을 위한 컨테이너
@@ -90,7 +189,7 @@ const InteractiveLayer = styled.div`
   left: 0;
   width: 100%;
   height: 100%;
-  z-index: 2;
+  z-index: 5;
   transition: opacity 0.5s ease-in-out;
   opacity: ${props => props.$fadeOut ? 0 : 1};
   pointer-events: ${props => props.$fadeOut ? 'none' : 'auto'};
@@ -106,22 +205,35 @@ const InteractiveElement = styled.div`
   transform: translate(-50%, -50%);
   cursor: pointer;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.1);
-  border: 2px solid rgba(255, 255, 255, 0.3);
+  background: radial-gradient(circle, rgba(218, 165, 32, 0.3) 0%, transparent 70%);
+  border: 2px solid rgba(218, 165, 32, 0.6);
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 24px;
   transition: all 0.3s ease;
+  box-shadow: 
+    0 0 20px rgba(218, 165, 32, 0.4),
+    inset 0 0 20px rgba(218, 165, 32, 0.2);
+  z-index: 10;
   
   &:hover {
-    background: rgba(255, 255, 255, 0.2);
-    border-color: rgba(255, 255, 255, 0.6);
+    background: radial-gradient(circle, rgba(218, 165, 32, 0.5) 0%, transparent 70%);
+    border-color: rgba(218, 165, 32, 0.8);
     transform: translate(-50%, -50%) scale(1.1);
+    box-shadow: 
+      0 0 30px rgba(218, 165, 32, 0.6),
+      inset 0 0 30px rgba(218, 165, 32, 0.3);
+    animation: vintageGlow 2s ease-in-out infinite alternate;
   }
   
   &:active {
     transform: translate(-50%, -50%) scale(0.95);
+  }
+  
+  @keyframes vintageGlow {
+    from { box-shadow: 0 0 20px rgba(218, 165, 32, 0.4); }
+    to { box-shadow: 0 0 40px rgba(218, 165, 32, 0.8); }
   }
 `;
 
@@ -131,17 +243,36 @@ const ElementLabel = styled.div`
   bottom: -30px;
   left: 50%;
   transform: translateX(-50%);
-  background: rgba(0, 0, 0, 0.8);
-  color: white;
+  background: linear-gradient(135deg, #f4e8d0 0%, #e6d3b0 100%);
+  color: #1c1c1c;
   padding: 4px 8px;
   border-radius: 4px;
+  border: 1px solid #8b4513;
   font-size: 12px;
+  font-family: 'Cinzel', serif;
+  font-weight: 500;
   white-space: nowrap;
   opacity: 0;
   transition: opacity 0.3s ease;
+  box-shadow: 
+    0 2px 4px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
   
   ${InteractiveElement}:hover & {
     opacity: 1;
+  }
+  
+  &::before {
+    content: '';
+    position: absolute;
+    top: -4px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 0;
+    height: 0;
+    border-left: 4px solid transparent;
+    border-right: 4px solid transparent;
+    border-bottom: 4px solid #8b4513;
   }
 `;
 
@@ -152,7 +283,15 @@ const ChatArea = styled.div`
   left: 0;
   width: 100%;
   height: 100%;
-  background: rgba(0, 0, 0, 0.5);
+  background: 
+    radial-gradient(circle at center, rgba(44, 24, 16, 0.8) 0%, rgba(26, 15, 10, 0.9) 100%),
+    repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(139, 69, 19, 0.1) 2px,
+      rgba(139, 69, 19, 0.1) 4px
+    );
   z-index: 1000;
   display: flex;
   flex-direction: column;
@@ -163,17 +302,45 @@ const ChatArea = styled.div`
 
 // 로딩 및 에러 처리
 const LoadingText = styled.div`
-  color: white;
+  color: #daa520;
   font-size: 18px;
+  font-family: 'Cinzel', serif;
   text-align: center;
   margin-top: 50px;
+  text-shadow: 
+    0 0 10px rgba(218, 165, 32, 0.5),
+    2px 2px 4px rgba(0, 0, 0, 0.8);
+  z-index: 10;
+  position: relative;
+  
+  &::before {
+    content: '◇';
+    display: block;
+    font-size: 24px;
+    margin-bottom: 10px;
+    opacity: 0.7;
+  }
 `;
 
 const ErrorText = styled.div`
-  color: #e74c3c;
+  color: #cd853f;
   font-size: 18px;
+  font-family: 'Cinzel', serif;
   text-align: center;
   margin-top: 50px;
+  text-shadow: 
+    0 0 10px rgba(205, 133, 63, 0.5),
+    2px 2px 4px rgba(0, 0, 0, 0.8);
+  z-index: 10;
+  position: relative;
+  
+  &::before {
+    content: '⚠';
+    display: block;
+    font-size: 24px;
+    margin-bottom: 10px;
+    opacity: 0.7;
+  }
 `;
 
 const GamePage = () => {
@@ -201,48 +368,46 @@ const GamePage = () => {
   const [showObjectInfo, setShowObjectInfo] = useState(false);
   const [currentObject, setCurrentObject] = useState(null);
   
+  // 채팅 로그 모달 상태 관리
+  const [showChatLogModal, setShowChatLogModal] = useState(false);
+  
+  // 메모장 모달 상태 관리
+  const [showMemoModal, setShowMemoModal] = useState(false);
+  
   // 방 전환 애니메이션 상태
   const [isRoomTransitioning, setIsRoomTransitioning] = useState(false);
 
   // 게임 데이터 로드
   useEffect(() => {
-    const switchRoomInitial = async (room) => {
-      try {
-        setIsLoadingRoom(true);
-        setCurrentRoom(room);
-        
-        // 방 배경 이미지 설정 (초기 로드 시에는 애니메이션 없음)
-        if (room.backgroundImageUrl) {
-          setCurrentBackground(room.backgroundImageUrl);
-        } else {
-          setCurrentBackground(gameBackground);
-        }
-        
-        // 해당 방의 상호작용 객체 가져오기
-        const objectsData = await getInteractiveObjectsApi(room.id, token);
-        setInteractiveObjects(objectsData);
-        
-      } catch (err) {
-        console.error('방 전환 중 에러:', err);
-      } finally {
-        setIsLoadingRoom(false);
-      }
-    };
-
     const fetchGameData = async () => {
       try {
         setIsLoading(true);
+        
+        // 단일 API 호출로 모든 게임 데이터 가져오기
         const data = await getPlaythroughApi(playthroughId, token);
         setGameData(data);
         
-        // 방 목록 가져오기
-        const roomsData = await getRoomsApi(data.scenarioId, token);
+        // API 응답에서 rooms 데이터 추출
+        const roomsData = data.scenario?.rooms || [];
         setRooms(roomsData);
         
-        // 첫 번째 방으로 이동
+        // 첫 번째 방으로 초기 설정
         if (roomsData.length > 0) {
-          await switchRoomInitial(roomsData[0]);
+          const firstRoom = roomsData[0];
+          setCurrentRoom(firstRoom);
+          
+          // 방 배경 이미지 설정
+          if (firstRoom.backgroundImageUrl) {
+            setCurrentBackground(firstRoom.backgroundImageUrl);
+          } else {
+            setCurrentBackground(gameBackground);
+          }
+          
+          // 첫 번째 방의 상호작용 객체 설정
+          const visibleObjects = (firstRoom.interactiveObjects || []).filter(obj => obj.isVisible);
+          setInteractiveObjects(visibleObjects);
         }
+        
       } catch (err) {
         setError(err.message);
         console.error('게임 정보를 가져오는 중 에러:', err);
@@ -273,9 +438,9 @@ const GamePage = () => {
         setCurrentBackground(gameBackground);
       }
       
-      // 3. 해당 방의 상호작용 객체 가져오기
-      const objectsData = await getInteractiveObjectsApi(room.id, token);
-      setInteractiveObjects(objectsData);
+      // 3. 해당 방의 상호작용 객체 설정 (이미 로드된 데이터 사용)
+      const visibleObjects = (room.interactiveObjects || []).filter(obj => obj.isVisible);
+      setInteractiveObjects(visibleObjects);
       
       // 4. 짧은 대기 후 페이드 인 시작
       await new Promise(resolve => setTimeout(resolve, 100));
@@ -299,22 +464,16 @@ const GamePage = () => {
     navigate('/');
   };
 
-  // 인벤토리 열기
-  const handleOpenInventory = () => {
-    console.log('인벤토리 열기');
-    // TODO: 인벤토리 모달 구현
+  // 채팅 로그 열기
+  const handleOpenChatLog = () => {
+    console.log('채팅 로그 열기');
+    setShowChatLogModal(true);
   };
 
-  // 단서장 열기
-  const handleOpenClues = () => {
-    console.log('단서장 열기');
-    // TODO: 단서장 모달 구현
-  };
-
-  // 힌트 보기
-  const handleShowHint = () => {
-    console.log('힌트 보기');
-    // TODO: 힌트 시스템 구현
+  // 메모장 열기
+  const handleOpenMemo = () => {
+    console.log('메모장 열기');
+    setShowMemoModal(true);
   };
 
   // 클릭 가능한 요소 상호작용
@@ -369,6 +528,16 @@ const GamePage = () => {
     setCurrentObject(null);
   };
 
+  // 채팅 로그 모달 닫기
+  const handleCloseChatLogModal = () => {
+    setShowChatLogModal(false);
+  };
+
+  // 메모장 모달 닫기
+  const handleCloseMemoModal = () => {
+    setShowMemoModal(false);
+  };
+
   // 아이템 획득 처리
   const handleItemAcquired = (itemData) => {
     console.log('아이템 획득:', itemData);
@@ -404,8 +573,8 @@ const GamePage = () => {
       {/* 상단 네비게이션 바 */}
       <TopNavBar>
         <NavButtonGroup>
-          <NavButton onClick={handleGoBack}>← 뒤로</NavButton>
-          <NavButton onClick={handleGoHome}>🏠 홈</NavButton>
+          <NavButton onClick={handleGoBack}>🎭 뒤로</NavButton>
+          <NavButton onClick={handleGoHome}>🏛️ 홈</NavButton>
         </NavButtonGroup>
         
         <GameTitle>
@@ -413,9 +582,8 @@ const GamePage = () => {
         </GameTitle>
         
         <NavButtonGroup>
-          <NavButton onClick={handleOpenInventory}>🎒 인벤토리</NavButton>
-          <NavButton onClick={handleOpenClues}>📋 단서장</NavButton>
-          <NavButton $primary onClick={handleShowHint}>💡 힌트</NavButton>
+          <NavButton onClick={handleOpenChatLog}>📜 채팅 로그</NavButton>
+          <NavButton $primary onClick={handleOpenMemo}>🔍 메모장</NavButton>
         </NavButtonGroup>
       </TopNavBar>
 
@@ -460,6 +628,25 @@ const GamePage = () => {
           />
         </ChatArea>
       </GameScreen>
+
+      {/* 채팅 로그 모달 */}
+      {showChatLogModal && (
+        <ChatLogModal 
+          playthroughId={playthroughId}
+          token={token}
+          onClose={handleCloseChatLogModal}
+        />
+      )}
+
+      {/* 메모장 모달 */}
+      {showMemoModal && (
+        <MemoModal 
+          playthroughId={playthroughId}
+          token={token}
+          gameData={gameData}
+          onClose={handleCloseMemoModal}
+        />
+      )}
     </GamePageContainer>
   );
 };

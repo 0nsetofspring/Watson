@@ -149,6 +149,14 @@ router.get('/:playthroughId/chats', isLoggedIn, async (req, res) => {
         messageText: true,
         isHighlighted: true,
         createdAt: true,
+        npcId: true,
+        npc: {
+          select: {
+            id: true,
+            name: true,
+            imageUrl: true,
+          },
+        },
       },
     });
 
@@ -193,6 +201,14 @@ router.get('/:playthroughId/chats/highlighted', isLoggedIn, async (req, res) => 
         messageText: true,
         isHighlighted: true,
         createdAt: true,
+        npcId: true,
+        npc: {
+          select: {
+            id: true,
+            name: true,
+            imageUrl: true,
+          },
+        },
       },
     });
 
