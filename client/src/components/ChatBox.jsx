@@ -1,7 +1,7 @@
 // client/src/components/ChatBox.jsx
 
 import { useState, useEffect, useRef } from 'react';
-import { sendChatMessage } from '../api/game';
+import { sendChatMessage, getChatHistory } from '../api/game';
 import { useAuth } from '../context/AuthContext';
 import styled from 'styled-components';
 
@@ -227,6 +227,28 @@ const ChatBox = ({ playthroughId, currentInteraction, onClose }) => {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+
+  // 채팅 기록 불러오기
+  useEffect(() => {
+    const loadChatHistory = async () => {
+      if (!playthroughId || !token) return;
+      
+      try {
+        setIsLoadingHistory(true);
+        const history = await getChatHistory(playthroughId, token);
+        setMessages(history);
+      } catch (error) {
+        console.error('채팅 기록 불러오기 실패:', error);
+        // 기록 불러오기 실패 시 빈 배열로 초기화
+        setMessages([]);
+      } finally {
+        setIsLoadingHistory(false);
+      }
+    };
+
+    loadChatHistory();
+  }, [playthroughId, token]);
 
   // 새 메시지가 추가될 때마다 스크롤을 맨 아래로 이동
   useEffect(() => {
@@ -237,53 +259,45 @@ const ChatBox = ({ playthroughId, currentInteraction, onClose }) => {
   useEffect(() => {
     if (currentInteraction) {
       const handleInteraction = async () => {
+        // 객체 타입에 따른 자동 상호작용 메시지 생성
+        let interactionMessage = '';
+        
+        switch (currentInteraction.type) {
+          case 'book':
+            interactionMessage = `${currentInteraction.name}을 읽어보겠습니다.`;
+            break;
+          case 'notepad':
+            interactionMessage = `${currentInteraction.name}을 살펴보겠습니다.`;
+            break;
+          case 'clue':
+            interactionMessage = `${currentInteraction.name}을 조사하겠습니다.`;
+            break;
+          case 'evidence':
+            interactionMessage = `${currentInteraction.name}을 조사하겠습니다.`;
+            break;
+          case 'item':
+            interactionMessage = `${currentInteraction.name}을 확인하겠습니다.`;
+            break;
+          case 'npc':
+            interactionMessage = `${currentInteraction.name}에게 인사하겠습니다.`;
+            break;
+          default:
+            interactionMessage = `${currentInteraction.name}과 상호작용하겠습니다.`;
+        }
+        
         const userMessage = {
           id: Date.now(),
-          messageText: `${currentInteraction.name}을 조사합니다.`,
+          messageText: interactionMessage,
           isUserMessage: true,
         };
         
-        setMessages([userMessage]);
+        setMessages(prev => [...prev, userMessage]);
         setIsLoading(true);
 
         try {
-          // 실제 API가 없으므로 mock 응답 생성
-          const data = JSON.parse(currentInteraction.data || '{}');
-          let responseMessage = '';
-          
-          switch (currentInteraction.type) {
-            case 'book':
-              responseMessage = `${currentInteraction.name}을 읽어보니: ${data.content}`;
-              break;
-            case 'notepad':
-              responseMessage = `${currentInteraction.name}을 살펴보니: ${data.content}`;
-              break;
-            case 'clue':
-              responseMessage = `${currentInteraction.name}을 조사한 결과: ${data.clue}`;
-              break;
-            case 'evidence':
-              responseMessage = `${currentInteraction.name}을 조사한 결과: ${data.clue}`;
-              break;
-            case 'item':
-              responseMessage = `${currentInteraction.name}을 획득했습니다. ${data.description}`;
-              break;
-            case 'npc':
-              responseMessage = `${currentInteraction.name}: ${data.dialogue || '안녕하세요.'}`;
-              break;
-            default:
-              responseMessage = `${currentInteraction.name}과 상호작용했습니다.`;
-          }
-          
-          const npcMessage = {
-            id: Date.now() + 1,
-            messageText: responseMessage,
-            isUserMessage: false,
-          };
-          
-          setTimeout(() => {
-            setMessages(prev => [...prev, npcMessage]);
-            setIsLoading(false);
-          }, 1000);
+          // 실제 백엔드 API를 사용하여 LLM 응답 받기
+          const npcMessage = await sendChatMessage(playthroughId, interactionMessage, token);
+          setMessages(prev => [...prev, npcMessage]);
           
         } catch (error) {
           console.error('상호작용 중 에러:', error);
@@ -293,14 +307,12 @@ const ChatBox = ({ playthroughId, currentInteraction, onClose }) => {
             isUserMessage: false,
           };
           setMessages(prev => [...prev, errorMessage]);
+        } finally {
           setIsLoading(false);
         }
       };
 
       handleInteraction();
-    } else {
-      // 상호작용이 없으면 메시지 초기화
-      setMessages([]);
     }
   }, [currentInteraction, playthroughId, token]);
 
@@ -361,16 +373,27 @@ const ChatBox = ({ playthroughId, currentInteraction, onClose }) => {
       </ChatBoxHeader>
       
       <MessagesArea>
-        {messages.map((msg) => (
-          <MessageContainer key={msg.id} $isUser={msg.isUserMessage}>
-            <MessageLabel>
-              {msg.isUserMessage ? '나' : (currentInteraction?.name || 'NPC')}
-            </MessageLabel>
-            <Message $isUser={msg.isUserMessage}>
-              {msg.messageText}
-            </Message>
-          </MessageContainer>
-        ))}
+        {isLoadingHistory ? (
+          <LoadingIndicator>
+            <MessageLabel>채팅 기록을 불러오는 중...</MessageLabel>
+            <LoadingDots>
+              <span></span>
+              <span></span>
+              <span></span>
+            </LoadingDots>
+          </LoadingIndicator>
+        ) : (
+          messages.map((msg) => (
+            <MessageContainer key={msg.id} $isUser={msg.isUserMessage}>
+              <MessageLabel>
+                {msg.isUserMessage ? '나' : (currentInteraction?.name || 'NPC')}
+              </MessageLabel>
+              <Message $isUser={msg.isUserMessage}>
+                {msg.messageText}
+              </Message>
+            </MessageContainer>
+          ))
+        )}
         {isLoading && (
           <LoadingIndicator>
             <MessageLabel>{currentInteraction?.name || 'NPC'}가 입력중...</MessageLabel>

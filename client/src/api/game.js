@@ -46,6 +46,48 @@ export const sendChatMessage = async (playthroughId, message, token) => {
   return data; // { messageText, ... }
 }
 
+/**
+ * 채팅 기록 조회
+ * @param {number} playthroughId - 진행 중인 게임의 ID
+ * @param {string} token - 로그인 JWT 토큰
+ * @returns {Promise<Array>} - 채팅 기록 배열
+ */
+export const getChatHistory = async (playthroughId, token) => {
+  const response = await fetch(`${API_BASE_URL}/api/playthroughs/${playthroughId}/chats`, {
+    method: 'GET',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+    },
+  });
+
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data.error || '채팅 기록 조회 실패');
+  }
+  return data;
+};
+
+/**
+ * 하이라이트된 채팅 기록 조회
+ * @param {number} playthroughId - 진행 중인 게임의 ID
+ * @param {string} token - 로그인 JWT 토큰
+ * @returns {Promise<Array>} - 하이라이트된 채팅 기록 배열
+ */
+export const getHighlightedChatHistory = async (playthroughId, token) => {
+  const response = await fetch(`${API_BASE_URL}/api/playthroughs/${playthroughId}/chats/highlighted`, {
+    method: 'GET',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+    },
+  });
+
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data.error || '하이라이트된 채팅 기록 조회 실패');
+  }
+  return data;
+};
+
 // 특정 playthroughId로 게임 정보 가져오기
 export const getPlaythroughApi = async (playthroughId, token) => {
   const response = await fetch(`${API_BASE_URL}/api/playthroughs/${playthroughId}`, {
@@ -113,63 +155,5 @@ export const getNpcsApi = async (roomId, token) => {
       const npcs = mockNpcs.filter(npc => npc.roomId === roomId);
       resolve(npcs);
     }, 300);
-  });
-};
-
-/**
- * 상호작용 객체와 상호작용 (채팅 메시지 전송)
- * @param {number} playthroughId - 진행 중인 게임의 ID
- * @param {number} objectId - 상호작용할 객체의 ID
- * @param {string} message - 사용자가 입력한 메시지
- * @param {string} token - 로그인 JWT 토큰
- * @returns {Promise<object>} - 서버 응답
- */
-export const interactWithObjectApi = async (playthroughId, objectId, message, token) => {
-  // TODO: 서버 API 구현 후 실제 API 호출로 변경
-  // 현재는 mockData 사용
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      const object = mockInteractiveObjects.find(obj => obj.id === objectId);
-      if (object) {
-        const data = JSON.parse(object.data || '{}');
-        let responseMessage = '';
-        
-        switch (object.type) {
-          case 'book':
-            responseMessage = `${object.name}을 읽어보니: ${data.content}`;
-            break;
-          case 'notepad':
-            responseMessage = `${object.name}을 살펴보니: ${data.content}`;
-            break;
-          case 'clue':
-            responseMessage = `${object.name}을 조사한 결과: ${data.clue}`;
-            break;
-          case 'evidence':
-            responseMessage = `${object.name}을 조사한 결과: ${data.clue}`;
-            break;
-          case 'item':
-            responseMessage = `${object.name}을 획득했습니다. ${data.description}`;
-            break;
-          case 'door':
-            responseMessage = `${object.name}을 열었습니다.`;
-            break;
-          default:
-            responseMessage = `${object.name}과 상호작용했습니다.`;
-        }
-        
-        resolve({
-          id: Date.now(),
-          messageText: responseMessage,
-          isUserMessage: false,
-          interactiveObjectId: objectId,
-        });
-      } else {
-        resolve({
-          id: Date.now(),
-          messageText: '해당 객체를 찾을 수 없습니다.',
-          isUserMessage: false,
-        });
-      }
-    }, 1000);
   });
 };

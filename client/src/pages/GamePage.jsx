@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { getPlaythroughApi, getRoomsApi, getInteractiveObjectsApi, interactWithObjectApi } from '../api/game';
+import { getPlaythroughApi, getRoomsApi, getInteractiveObjectsApi } from '../api/game';
 import styled from 'styled-components';
 import ChatBox from '../components/ChatBox';
+import ObjectInfo from '../components/ObjectInfo';
 
 // 게임 배경 이미지 import
 import gameBackground from '../assets/images/game_background.png';
@@ -192,9 +193,13 @@ const GamePage = () => {
   const [interactiveObjects, setInteractiveObjects] = useState([]);
   const [isLoadingRoom, setIsLoadingRoom] = useState(false);
   
-  // 채팅박스 상태 관리
+  // 채팅박스 상태 관리 (NPC 전용)
   const [showChatBox, setShowChatBox] = useState(false);
   const [currentInteraction, setCurrentInteraction] = useState(null);
+  
+  // 객체 정보 상태 관리 (객체 전용)
+  const [showObjectInfo, setShowObjectInfo] = useState(false);
+  const [currentObject, setCurrentObject] = useState(null);
   
   // 방 전환 애니메이션 상태
   const [isRoomTransitioning, setIsRoomTransitioning] = useState(false);
@@ -343,9 +348,9 @@ const GamePage = () => {
       case 'evidence':
       case 'clue':
       case 'item':
-        // 다른 객체들은 상호작용 채팅창 표시
-        setCurrentInteraction(element);
-        setShowChatBox(true);
+        // 객체들은 정보 패널 표시
+        setCurrentObject(element);
+        setShowObjectInfo(true);
         break;
       default:
         console.log('알 수 없는 요소:', element);
@@ -354,13 +359,28 @@ const GamePage = () => {
 
   // 채팅박스 닫기
   const handleCloseChatBox = () => {
-    // 아이템의 경우 획득 후 화면에서 제거
-    if (currentInteraction && currentInteraction.type === 'item') {
-      setInteractiveObjects(prev => prev.filter(obj => obj.id !== currentInteraction.id));
-    }
-    
     setShowChatBox(false);
     setCurrentInteraction(null);
+  };
+
+  // 객체 정보 닫기
+  const handleCloseObjectInfo = () => {
+    setShowObjectInfo(false);
+    setCurrentObject(null);
+  };
+
+  // 아이템 획득 처리
+  const handleItemAcquired = (itemData) => {
+    console.log('아이템 획득:', itemData);
+    // 아이템을 화면에서 제거
+    setInteractiveObjects(prev => prev.filter(obj => obj.id !== itemData.id));
+    // TODO: 인벤토리에 아이템 추가 API 호출
+  };
+
+  // 단서 추가 처리
+  const handleClueAdded = (clueData) => {
+    console.log('단서 추가:', clueData);
+    // TODO: 단서장에 단서 추가 API 호출
   };
 
   if (isLoading) {
@@ -401,7 +421,7 @@ const GamePage = () => {
 
       {/* 메인 게임 화면 */}
       <GameScreen $backgroundImage={currentBackground} $fadeOut={isRoomTransitioning}>
-        <InteractiveLayer $fadeOut={showChatBox || isRoomTransitioning}>
+        <InteractiveLayer $fadeOut={showChatBox || showObjectInfo || isRoomTransitioning}>
           {isLoadingRoom ? (
             <LoadingText>방 로딩 중...</LoadingText>
           ) : (
@@ -421,12 +441,22 @@ const GamePage = () => {
           )}
         </InteractiveLayer>
 
-        {/* 오버레이 채팅 인터페이스 */}
+        {/* 오버레이 채팅 인터페이스 (NPC 전용) */}
         <ChatArea $show={showChatBox}>
           <ChatBox 
             playthroughId={playthroughId}
             currentInteraction={currentInteraction}
             onClose={handleCloseChatBox}
+          />
+        </ChatArea>
+
+        {/* 오버레이 객체 정보 인터페이스 */}
+        <ChatArea $show={showObjectInfo}>
+          <ObjectInfo 
+            objectData={currentObject}
+            onClose={handleCloseObjectInfo}
+            onItemAcquired={handleItemAcquired}
+            onClueAdded={handleClueAdded}
           />
         </ChatArea>
       </GameScreen>
