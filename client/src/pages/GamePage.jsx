@@ -9,6 +9,8 @@ import ObjectInfo from '../components/ObjectInfo';
 import ChatLogModal from '../components/ChatLogModal';
 import MemoModal from '../components/MemoModal';
 import Submit from '../components/Submit';
+import BGMPlayer from '../components/BGMPlayer';
+import bgmFile from '../assets/sound/game_bgm.mp3';
 
 // 게임 배경 이미지 import
 import gameBackground from '../assets/images/game_background.png';
@@ -585,7 +587,6 @@ const GamePage = () => {
           // switchRoom 함수가 모든 초기화를 처리하므로 직접 호출
           await switchRoom(roomsData[0]);
         }
-        await switchRoom(roomsData[0]);
       } catch (err) {
         setError(err.message);
         console.error('게임 정보를 가져오는 중 에러:', err);
@@ -1229,6 +1230,7 @@ const GamePage = () => {
 
   return (
     <GamePageContainer>
+      <BGMPlayer src={bgmFile} volume={0.4} />
       {/* 통합 알림 표시 */}
       {alert.show && (
         <AlertContainer $type={alert.type} $isExiting={alert.isExiting}>

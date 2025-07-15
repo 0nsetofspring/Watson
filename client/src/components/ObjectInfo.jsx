@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import styled from 'styled-components';
+import InvestigationConfirmModal from './InvestigationConfirmModal';
 
 // 전체 컨테이너 (최소한의 배경)
 const SimpleContainer = styled.div`
@@ -205,6 +206,7 @@ const ObjectInfo = ({
   investigationProgress
 }) => {
   const [showDetailPanel, setShowDetailPanel] = useState(false);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
 
   if (!objectData) return null;
 
@@ -231,6 +233,14 @@ const ObjectInfo = ({
       return;
     }
 
+    // 새로운 조사 시작 전 확인 모달 표시
+    setShowConfirmModal(true);
+  };
+
+  // 조사 시작 확인 처리
+  const handleConfirmInvestigation = async () => {
+    setShowConfirmModal(false);
+    
     // 조사 시작 시도
     if (onStartInvestigation) {
       const success = await onStartInvestigation();
@@ -239,6 +249,11 @@ const ObjectInfo = ({
       }
       // 실패 시 알림은 GamePage에서 처리되므로 여기서는 아무것도 하지 않음
     }
+  };
+
+  // 조사 시작 취소 처리
+  const handleCancelInvestigation = () => {
+    setShowConfirmModal(false);
   };
 
   // 상세 패널 닫기
@@ -367,6 +382,15 @@ const ObjectInfo = ({
           </>
         )}
       </DetailPanel>
+
+      {/* 조사 시작 확인 모달 */}
+      <InvestigationConfirmModal
+        isOpen={showConfirmModal}
+        objectName={objectData.name}
+        requiredQuestions={requiredQuestions}
+        onConfirm={handleConfirmInvestigation}
+        onCancel={handleCancelInvestigation}
+      />
     </>
   );
 };
