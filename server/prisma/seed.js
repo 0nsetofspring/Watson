@@ -47,6 +47,7 @@ async function main() {
         '조사 목표: KAIST 측의 협조를 얻어 캠프에 출입. 공식적인 조사 권한으로 용의자들을 심문하고 증거를 수집하여 사건의 진실을 밝힐 것.',
     },
   });
+
   console.log(`✅ Created scenario: ${scenario1.title}`);
 
   // --- 엔딩 데이터 생성 ---
@@ -365,7 +366,7 @@ async function main() {
       name: "서버실 마스터 카드",
       type: "key",
       x: "80%",
-      y: "67%",
+      y: "66%",
       width: "80px",
       height: "80px",
       icon: "🔑",
@@ -380,10 +381,10 @@ async function main() {
       roomId: serverRoom.id,
       name: "서버실 내부 랜선",
       type: "evidence",
-      x: "30%",
-      y: "60%",
-      width: "60px",
-      height: "60px",
+      x: "82%",
+      y: "75%",
+      width: "130px",
+      height: "130px",
       icon: "纜線",
       isClickable: true,
       isVisible: true,
@@ -400,7 +401,7 @@ async function main() {
       type: "door",
       x: "10%",
       y: "45%",
-      width: "60px",
+      width: "100px",
       height: "100px",
       icon: "🚪",
       isClickable: true,
@@ -420,7 +421,7 @@ async function main() {
       type: "door",
       x: "95%",
       y: "45%",
-      width: "60px",
+      width: "100px",
       height: "100px",
       icon: "🚪",
       isClickable: true,
@@ -438,7 +439,7 @@ async function main() {
       type: "door",
       x: "10%",
       y: "45%",
-      width: "60px",
+      width: "100px",
       height: "100px",
       icon: "🚪",
       isClickable: true,
@@ -458,7 +459,7 @@ async function main() {
       type: "door",
       x: "95%",
       y: "45%",
-      width: "60px",
+      width: "100px",
       height: "100px",
       icon: "🚪",
       isClickable: true,
@@ -474,10 +475,10 @@ async function main() {
       roomId: lounge.id,
       name: "서버실 출입문",
       type: "door",
-      x: "20%",
-      y: "20%",
-      width: "80px",
-      height: "120px",
+      x: "10%",
+      y: "45%",
+      width: "130px",
+      height: "130px",
       icon: "🔒",
       isClickable: true,
       isVisible: true,
@@ -485,8 +486,8 @@ async function main() {
       data: JSON.stringify({
         targetRoomName: "비밀의 방: 서버 관리실",
         requiresKey: true,
-        requiredKeyName: "서버실 마스터 키",
-        lockedMessage: "이 문은 잠겨있습니다. 서버실 마스터 키가 필요합니다."
+        requiredKeyName: "서버실 마스터 카드",
+        lockedMessage: "이 문은 잠겨있습니다. 서버실 마스터 카드가 필요합니다."
       }),
       imageUrl: null
     },
@@ -496,9 +497,9 @@ async function main() {
       roomId: serverRoom.id,
       name: "서버실 출구",
       type: "door",
-      x: "90%",
+      x: "95%",
       y: "45%",
-      width: "80px",
+      width: "100px",
       height: "120px",
       icon: "🚪",
       isClickable: true,
@@ -519,7 +520,145 @@ async function main() {
   console.log('✅ Created all interactive objects');
 
   console.log('🎉 Seeding finished successfully!');
+
+
+  // --- Dummy Scenario 추가 ---
+  const scenario2 = await prisma.scenario.create({
+    data: {
+      title: '뽀로로와 루피의 투자회사',
+      imageUrl: 'https://placekitten.com/2070/1200',
+      settingPrompt: 
+        "당신은 테스트 용도로 생성된 더미 탐정 시나리오의 주인공입니다.\n" +
+        "이 시나리오는 기능 검증과 개발 중간 점검을 위해 사용됩니다.\n" +
+        "임의의 인터랙티브 오브젝트와 NPC가 배치되어 있으며, 실제 조사 흐름과 유사하지만 사실관계는 모두 가공된 내용입니다.",
+      backgroundScript: 
+        '[더미 사건 파일: DUMMY-0001]\n' +
+        '사건 개요: 아무 사건도 발생하지 않았습니다. 모든 증거가 무작위로 배치된 테스트 데이터입니다.\n'
+    },
+  });
+  console.log(`✅ Created scenario: ${scenario2.title}`);
+
+  // 더미 엔딩 추가
+  await prisma.ending.create({
+    data: {
+      scenarioId: scenario2.id,
+      name: '더미 엔딩',
+      description: '이것은 테스트용 더미 엔딩입니다. 기능 검증을 위한 간단한 설명만 포함합니다.'
+    },
+  });
+
+  // 더미 방 추가
+  const dummyRoom = await prisma.room.create({
+    data: {
+      scenarioId: scenario2.id,
+      name: '더미 테스트 룸',
+      description: '더미 시나리오의 테스트 방입니다. 별다른 이벤트가 없습니다.',
+      backgroundImageUrl: '/images/backgrounds/b_lounge.webp',
+    },
+  });
+  console.log('✅ Created dummy room');
+
+  // 더미 NPC 추가
+  const dummyNpc = await prisma.npc.create({
+    data: {
+      roomId: dummyRoom.id,
+      name: '테스트 NPC',
+      imageUrl: '/images/characters/p_kjy.png',
+      settingPrompt: '[더미 NPC]',
+    },
+  });
+
+  // 더미 인터랙티브 오브젝트 추가
+  await prisma.interactiveObject.create({
+    data: {
+      roomId: dummyRoom.id,
+      name: '테스트 오브젝트',
+      type: 'evidence',
+      x: '50%',
+      y: '50%',
+      width: '100px',
+      height: '100px',
+      icon: '🔍',
+      isClickable: true,
+      isVisible: true,
+      description: '이것은 테스트용 더미 증거입니다.',
+      data: '테스트 데이터',
+      imageUrl: '/images/objects/o_wire.png',
+      requiredQuestions: 1,
+    },
+  });
+  console.log('✅ Created dummy NPC and object for testing');
+
+
+  // --- Dummy Scenario 추가 ---
+  const scenario3 = await prisma.scenario.create({
+    data: {
+      title: '한양대 행당산의 중력',
+      imageUrl: 'https://placekitten.com/2070/1200',
+      settingPrompt: 
+        "당신은 테스트 용도로 생성된 더미 탐정 시나리오의 주인공입니다.\n" +
+        "이 시나리오는 기능 검증과 개발 중간 점검을 위해 사용됩니다.\n" +
+        "임의의 인터랙티브 오브젝트와 NPC가 배치되어 있으며, 실제 조사 흐름과 유사하지만 사실관계는 모두 가공된 내용입니다.",
+      backgroundScript: 
+        '[더미 사건 파일: DUMMY-0001]\n' +
+        '사건 개요: 아무 사건도 발생하지 않았습니다. 모든 증거가 무작위로 배치된 테스트 데이터입니다.\n'
+    },
+  });
+  console.log(`✅ Created scenario: ${scenario2.title}`);
+
+  // 더미 엔딩 추가
+  await prisma.ending.create({
+    data: {
+      scenarioId: scenario3.id,
+      name: '더미 엔딩',
+      description: '이것은 테스트용 더미 엔딩입니다. 기능 검증을 위한 간단한 설명만 포함합니다.'
+    },
+  });
+
+  // 더미 방 추가
+  const dummyRoo = await prisma.room.create({
+    data: {
+      scenarioId: scenario3.id,
+      name: '더미 테스트 룸',
+      description: '더미 시나리오의 테스트 방입니다. 별다른 이벤트가 없습니다.',
+      backgroundImageUrl: '/images/backgrounds/b_lounge.webp',
+    },
+  });
+  console.log('✅ Created dummy room');
+
+  // 더미 NPC 추가
+  const dummyNp = await prisma.npc.create({
+    data: {
+      roomId: dummyRoo.id,
+      name: '테스트 NPC',
+      imageUrl: '/images/characters/p_kjy.png',
+      settingPrompt: '[더미 NPC]',
+    },
+  });
+
+  // 더미 인터랙티브 오브젝트 추가
+  await prisma.interactiveObject.create({
+    data: {
+      roomId: dummyRoo.id,
+      name: '테스트 오브젝트',
+      type: 'evidence',
+      x: '50%',
+      y: '50%',
+      width: '100px',
+      height: '100px',
+      icon: '🔍',
+      isClickable: true,
+      isVisible: true,
+      description: '이것은 테스트용 더미 증거입니다.',
+      data: '테스트 데이터',
+      imageUrl: '/images/objects/o_card.png',
+      requiredQuestions: 1,
+    },
+  });
+  console.log('✅ Created dummy NPC and object for testing');
+
 }
+
 
 main()
   .catch((e) => {

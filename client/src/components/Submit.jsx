@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import styled, { keyframes } from 'styled-components';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { concludePlaythroughApi } from '../api/game';
 
@@ -459,12 +460,12 @@ const ErrorText = styled.p`
 
 
 const Submit = ({ playthroughId, gameData, onClose, onSubmissionComplete }) => {
+  const navigate = useNavigate(); // 2. 페이지 이동을 위한 navigate 함수 선언
   const { token } = useAuth();
   const [culpritName, setCulpritName] = useState('');
   const [reasoningText, setReasoningText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [result, setResult] = useState(null);
 
   const npcs = useMemo(() => {
     if (!gameData?.scenario?.rooms) return [];
@@ -483,14 +484,15 @@ const Submit = ({ playthroughId, gameData, onClose, onSubmissionComplete }) => {
       setError('범인 지목과 추리 내용은 필수 항목입니다.');
       return;
     }
-
     setIsLoading(true);
     setError(null);
-
     try {
       const reportData = await concludePlaythroughApi(playthroughId, culpritName, reasoningText, token);
-      setResult(reportData);
       onSubmissionComplete(reportData);
+      
+      // 3. ✨ API 호출 성공 시, 결과 페이지로 데이터와 함께 이동합니다.
+      navigate('/conclusion', { state: { result: reportData } });
+
     } catch (err) {
       setError(err.message);
     } finally {
@@ -498,53 +500,34 @@ const Submit = ({ playthroughId, gameData, onClose, onSubmissionComplete }) => {
     }
   };
 
-  const handleClose = () => {
-    if (result) {
-      window.location.href = "/";
-    } else {
-      onClose();
-    }
-  };
-
   return (
     <ModalOverlay>
       <ReportContainer>
         <ReportHeader>
-          <ReportTitle>{result ? '사건 종결 보고서' : '최종 추리 보고서'}</ReportTitle>
-          <CloseButton onClick={handleClose}>×</CloseButton>
+          <ReportTitle>최종 추리 보고서</ReportTitle>
+          <CloseButton onClick={onClose}>×</CloseButton>
         </ReportHeader>
         <ReportContent>
-          {!result ? (
-            <form onSubmit={handleSubmit}>
-              <FieldSet>
-                <Legend>범인 지목</Legend>
-                <Label htmlFor="culprit-select">아래 목록에서 이 사건의 범인이라고 생각되는 인물을 선택하십시오.</Label>
-                <Select id="culprit-select" value={culpritName} onChange={(e) => setCulpritName(e.target.value)} disabled={isLoading}>
-                  {npcs.map(npc => (
-                    <option key={npc.id} value={npc.name}>{npc.name}</option>
-                  ))}
-                </Select>
-              </FieldSet>
-
-              <FieldSet>
-                <Legend>최종 추리</Legend>
-                <Label htmlFor="reasoning-text">수집한 단서들을 바탕으로, 당신의 최종 추리를 상세히 기술하십시오. (육하원칙에 따라 작성 권장)</Label>
-                <TextArea id="reasoning-text" value={reasoningText} onChange={(e) => setReasoningText(e.target.value)} disabled={isLoading} />
-              </FieldSet>
-
-              <SubmitButton type="submit" disabled={isLoading}>
-                {isLoading ? '분석 중...' : '보고서 봉인 및 제출'}
-              </SubmitButton>
-              {error && <ErrorText>{error}</ErrorText>}
-            </form>
-          ) : (
-            <ResultContainer $isCorrect={result.isCorrect}>
-              <h3>{result.reportTitle}</h3>
-              <p><strong>측정된 추리 유사도:</strong> {result.similarity} / 100</p>
-              <hr />
-              <p>{result.reportBody}</p>
-            </ResultContainer>
-          )}
+          <form onSubmit={handleSubmit}>
+            <FieldSet>
+              <Legend>범인 지목</Legend>
+              <Label htmlFor="culprit-select">아래 목록에서 이 사건의 범인이라고 생각되는 인물을 선택하십시오.</Label>
+              <Select id="culprit-select" value={culpritName} onChange={(e) => setCulpritName(e.target.value)} disabled={isLoading}>
+                {npcs.map(npc => (
+                  <option key={npc.id} value={npc.name}>{npc.name}</option>
+                ))}
+              </Select>
+            </FieldSet>
+            <FieldSet>
+              <Legend>최종 추리</Legend>
+              <Label htmlFor="reasoning-text">수집한 단서들을 바탕으로, 당신의 최종 추리를 상세히 기술하십시오. (동기, 단서, 경위 등 상세히 작성 권장)</Label>
+              <TextArea id="reasoning-text" value={reasoningText} onChange={(e) => setReasoningText(e.target.value)} disabled={isLoading} />
+            </FieldSet>
+            <SubmitButton type="submit" disabled={isLoading}>
+              {isLoading ? '분석 중...' : '보고서 봉인 및 제출'}
+            </SubmitButton>
+            {error && <ErrorText>{error}</ErrorText>}
+          </form>
         </ReportContent>
       </ReportContainer>
     </ModalOverlay>

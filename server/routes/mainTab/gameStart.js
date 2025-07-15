@@ -130,6 +130,12 @@ router.get('/:playthroughId', isLoggedIn, async (req, res) => {
 router.post('/:playthroughId/conclude', isLoggedIn, async (req, res) => {
   const { playthroughId } = req.params;
   const { culpritName, reasoningText } = req.body; // 프론트에서 보낸 범인 이름과 추리 내용
+  const userId = req.user.id;
+
+  if (!process.env.GCP_PROJECT_ID || !process.env.GCP_LOCATION) {
+    console.error("환경 변수 오류: GCP_PROJECT_ID 또는 GCP_LOCATION이 .env 파일에 설정되지 않았습니다.");
+    return res.status(500).json({ error: '서버 환경 설정 오류가 발생했습니다. 관리자에게 문의하세요.' });
+  }
 
   if (!culpritName || !reasoningText) {
     return res.status(400).json({ error: '범인 지목과 추리 내용을 모두 입력해야 합니다.' });
@@ -146,9 +152,17 @@ router.post('/:playthroughId/conclude', isLoggedIn, async (req, res) => {
     }
 
     const trueEnding = playthrough.scenario.endings[0];
+    let trueCulpritName = "김지연"; // 기본값
+    if (trueEnding && trueEnding.description) {
+      const match = trueEnding.description.match(/범인은 (.+?)이다/);
+      if (match) trueCulpritName = match[1];
+    }
+
     if (!trueEnding) {
       return res.status(500).json({ error: '시나리오의 진실 정보를 찾을 수 없습니다.' });
     }
+
+    console.log(`[${playthroughId}] AI 평가를 위한 프롬프트 생성 중...`);
 
     const vertex_ai = new VertexAI({project: process.env.GCP_PROJECT_ID, location: process.env.GCP_LOCATION});
     const generativeModel = vertex_ai.getGenerativeModel({
@@ -169,7 +183,7 @@ router.post('/:playthroughId/conclude', isLoggedIn, async (req, res) => {
       [당신이 작성해야 할 평가 보고서의 조건]
       1.  보고서는 반드시 JSON 형식으로 출력해야 합니다.
       2.  JSON 객체는 isCorrect(boolean), similarity(number), reportTitle(string), reportBody(string) 네 개의 키를 가져야 합니다.
-      3.  isCorrect: 후배가 지목한 범인이 '김지연'이면 true, 아니면 false로 설정하세요.
+      3.  isCorrect: 후배가 지목한 범인이 '${trueCulpritName}'이면 true, 아니면 false로 설정하세요.
       4.  similarity: 후배의 추리 내용이 '사건의 진실'과 얼마나 유사한지 0부터 100까지의 숫자로 평가하세요. (범인, 동기, 수법, 핵심 증거를 모두 맞췄을 때 100점에 가깝습니다.)
       5.  reportTitle: isCorrect 값에 따라 "판정 결과: 진실" 또는 "판정 결과: 거짓"으로 설정하세요.
       6.  reportBody: 아래의 분석 내용을 포함하여, 후배의 추리를 상세하고 길게(최소 5문장 이상) 평가하는 보고서 본문을 작성하세요.
@@ -180,6 +194,8 @@ router.post('/:playthroughId/conclude', isLoggedIn, async (req, res) => {
     // 4. AI에게 추리 평가 요청
     const result = await generativeModel.generateContent(prompt);
     const response = await result.response;
+    console.log(`[${playthroughId}] AI로부터 응답 받음.`);
+
     const reportJsonText = response.candidates[0].content.parts[0].text.replace(/```json|```/g, '').trim();
     const reportData = JSON.parse(reportJsonText);
 
