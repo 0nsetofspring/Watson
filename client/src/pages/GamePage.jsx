@@ -33,10 +33,10 @@ const AlertContainer = styled.div`
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
   font-family: 'Cinzel', serif;
   font-weight: 600;
-  font-size: 14px;
+  font-size: 12px;
   z-index: 99999;
   animation: ${props => props.$isExiting ? 'slideOutRight' : 'slideInRight'} 0.5s ease-out;
-  max-width: 300px;
+  max-width: 200px;
   white-space: pre-line;
   
   @keyframes slideInRight {
@@ -585,20 +585,63 @@ const GamePage = () => {
     setActCount(newCount);
     
     console.log('🔥 행동력 감소:', { 이전: actCount, 현재: newCount, 상태업데이트됨: true });
+    console.log('🔍 현재 조사 상태들:', investigationStates);
+    console.log('🎯 활성 조사 객체:', activeInvestigationObject);
     
-    // 모든 진행 중인 조사의 상태를 확인하여 완료 가능 여부 업데이트
-    Object.keys(investigationStates).forEach(objectId => {
-      const state = investigationStates[objectId];
-      if (state.isInvestigationActive && !state.isCompleted) {
+    // 현재 진행 중인 조사가 있는지 확인하고 알림 표시
+    let activeInvestigation = null;
+    
+    // 우선 activeInvestigationObject가 있는지 확인
+    if (activeInvestigationObject && activeInvestigationObject.id) {
+      const state = investigationStates[activeInvestigationObject.id];
+      if (state && state.investigationStartCount !== null && !state.isCompleted) {
         const progress = state.investigationStartCount - newCount;
-        console.log(`조사 진행 상황 업데이트 - ${state.objectName}: ${progress}/${state.requiredQuestions}`);
+        console.log(`🎯 활성 조사 진행 상황 업데이트 - ${state.objectName}: ${progress}/${state.requiredQuestions}`);
         
-        // 자동 완료는 하지 않고, 사용자가 직접 완료 버튼을 클릭하도록 함
+        // 진행도가 음수가 되지 않도록 확인
+        if (progress >= 0) {
+          activeInvestigation = {
+            name: state.objectName,
+            progress: progress,
+            required: state.requiredQuestions,
+            remaining: Math.max(0, state.requiredQuestions - progress)
+          };
+        }
       }
-    });
+    }
     
-    // 카운트 감소 알림 표시
-    //showAlert('info', `질의응답 완료! 남은 질문 횟수: ${newCount}`);
+    // activeInvestigationObject가 없는 경우에만 다른 진행 중인 조사 찾기
+    if (!activeInvestigation) {
+      Object.keys(investigationStates).forEach(objectId => {
+        const state = investigationStates[objectId];
+        if (state.investigationStartCount !== null && !state.isCompleted) {
+          const progress = state.investigationStartCount - newCount;
+          console.log(`🔍 조사 진행 상황 확인 - ${state.objectName}: ${progress}/${state.requiredQuestions}`);
+          
+          // 진행도가 음수가 되지 않고, 아직 activeInvestigation이 없는 경우만
+          if (progress >= 0 && !activeInvestigation) {
+            activeInvestigation = {
+              name: state.objectName,
+              progress: progress,
+              required: state.requiredQuestions,
+              remaining: Math.max(0, state.requiredQuestions - progress)
+            };
+          }
+        }
+      });
+    }
+    
+    // 진행 중인 조사에 대한 알림 표시
+    if (activeInvestigation) {
+      if (activeInvestigation.remaining > 0) {
+        showAlert('info', `🔍 "${activeInvestigation.name}" 조사 진행: ${activeInvestigation.progress}/${activeInvestigation.required}\n완료까지 ${activeInvestigation.remaining}개 질문 남음`);
+      } else {
+        showAlert('success', `🎉 "${activeInvestigation.name}" 조사 완료 가능!\n조사 완료 버튼을 클릭하세요.`);
+      }
+    } else {
+      // 진행 중인 조사가 없는 경우 일반적인 알림
+      showAlert('info', `💬 질의응답 완료!\n남은 질문 횟수: ${newCount}`);
+    }
   };
 
   // 통합 알림 표시 함수
@@ -748,24 +791,52 @@ const GamePage = () => {
     }
   }, [interactiveObjects, playthroughId, token, actCount]);
 
-  // 조사 상태 초기화
+  // 조사 상태 초기화 (방 간 전환 시에도 기존 상태 보존)
   const initializeInvestigationStates = () => {
-    const newStates = {};
-    interactiveObjects.forEach(obj => {
-      if (obj.type === 'clue' || obj.type === 'evidence' || obj.type === 'item') {
-        const investigationKey = `investigation_${obj.id}`;
-        const storedData = JSON.parse(localStorage.getItem(investigationKey) || '{}');
-        
-        newStates[obj.id] = {
-          isInvestigationActive: obj.isInInspectation || false,
-          isCompleted: storedData.isComplete || false,
-          requiredQuestions: obj.requiredQuestions || 3,
-          investigationStartCount: storedData.startCount || null,
-          objectName: obj.name
-        };
-      }
-    });
-    setInvestigationStates(newStates);
+    console.log('🔄 조사 상태 초기화 시작');
+    setInvestigationStates(prevStates => {
+      console.log('📁 이전 조사 상태들:', prevStates);
+      const newStates = { ...prevStates }; // 기존 상태를 보존
+      
+      // 현재 방의 객체들에 대한 상태 업데이트
+      interactiveObjects.forEach(obj => {
+        if (obj.type === 'clue' || obj.type === 'evidence' || obj.type === 'item') {
+          const investigationKey = `investigation_${obj.id}`;
+          const storedData = JSON.parse(localStorage.getItem(investigationKey) || '{}');
+          
+          newStates[obj.id] = {
+            isInvestigationActive: obj.isInInspectation || false,
+            isCompleted: storedData.isComplete || false,
+            requiredQuestions: obj.requiredQuestions || 3,
+            investigationStartCount: storedData.startCount || null,
+            objectName: obj.name
+          };
+        }
+      });
+      
+      // localStorage에서 모든 조사 상태를 로드하여 보존
+      const allKeys = Object.keys(localStorage);
+      allKeys.forEach(key => {
+        if (key.startsWith('investigation_')) {
+          const objectId = key.replace('investigation_', '');
+          const storedData = JSON.parse(localStorage.getItem(key) || '{}');
+          
+          // 이미 newStates에 있는 경우 건너뛰기 (현재 방의 객체가 우선)
+          if (!newStates[objectId] && storedData.objectName) {
+            newStates[objectId] = {
+              isInvestigationActive: false, // 현재 방에 없는 객체는 비활성화
+              isCompleted: storedData.isComplete || false,
+              requiredQuestions: 3, // 기본값 사용
+              investigationStartCount: storedData.startCount || null,
+              objectName: storedData.objectName
+            };
+          }
+                 }
+       });
+       
+       console.log('✅ 최종 조사 상태들:', newStates);
+       return newStates;
+     });
   };
 
   // 전체 조사 상태 확인
@@ -1115,27 +1186,33 @@ const GamePage = () => {
                 $height={element.height}
                 onClick={() => handleElementClick(element)}
               >
-                {/* NPC만 이미지 표시, 그 외에는 중앙에 빛나는 점 */}
-                {element.type === 'npc' ? (
-                  <img
-                    src={(() => {
-                      if (element.imageUrl) return element.imageUrl;
-                      if (element.npcInfo && element.npcInfo.imageUrl) return element.npcInfo.imageUrl;
-                      return '';
-                    })()}
-                    alt={element.name}
-                    style={{
-                      width: '100%',
-                      height: '100%',
-                      objectFit: 'contain',
-                      pointerEvents: 'none',
-                      userSelect: 'none',
-                      display: 'block',
-                    }}
-                  />
-                ) : (
-                  <span className="glow-dot" />
-                )}
+                {(() => {
+                  // 모든 객체 타입에 대해 이미지 URL 확인
+                  let imageUrl = element.imageUrl;
+                  
+                  // NPC의 경우, npcInfo.imageUrl도 확인
+                  if (element.type === 'npc' && !imageUrl && element.npcInfo && element.npcInfo.imageUrl) {
+                    imageUrl = element.npcInfo.imageUrl;
+                  }
+                  
+                  // 이미지가 있으면 이미지를 표시, 없으면 빛나는 점 표시
+                  return imageUrl ? (
+                    <img
+                      src={imageUrl}
+                      alt={element.name}
+                      style={{
+                        width: '100%',
+                        height: '100%',
+                        objectFit: 'contain',
+                        pointerEvents: 'none',
+                        userSelect: 'none',
+                        display: 'block',
+                      }}
+                    />
+                  ) : (
+                    <span className="glow-dot" />
+                  );
+                })()}
                 <ElementLabel>{element.name}</ElementLabel>
               </InteractiveElement>
             ))
