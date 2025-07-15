@@ -645,7 +645,6 @@ const GamePage = () => {
   }, [alert.show, alert.isExiting]);
 
   // 방 전환 함수 (컴포넌트 내 다른 곳에서 사용)
-
   const switchRoom = async (room) => {
     try {
       setIsLoadingRoom(true);
@@ -665,11 +664,81 @@ const GamePage = () => {
     }
   };
 
+  // 모달 및 컴포넌트 닫기 함수들
+  const handleCloseChatBox = () => {
+    setShowChatBox(false);
+    setCurrentInteraction(null);
   };
+
+  const handleCloseObjectInfo = () => {
+    setShowObjectInfo(false);
+    setCurrentObject(null);
+  };
+
+  const handleCloseChatLogModal = () => setShowChatLogModal(false);
+  const handleCloseMemoModal = () => setShowMemoModal(false);
   const handleCloseSubmitModal = () => setShowSubmitModal(false);
+
+  // 아이템 획득 및 단서 추가 함수들
+  const handleItemAcquired = (itemData) => {
+    console.log('아이템 획득:', itemData);
+    // 아이템을 화면에서 제거
+    setInteractiveObjects(prev => prev.filter(obj => obj.id !== itemData.id));
+    showAlert('success', `"${itemData.name}"을(를) 획득했습니다!`);
+    // TODO: 인벤토리에 아이템 추가 API 호출
+  };
+
+  const handleClueAdded = (clueData) => {
+    console.log('단서 추가:', clueData);
+    showAlert('info', `새로운 단서를 발견했습니다: "${clueData.name}"`);
+    // TODO: 단서장에 단서 추가 API 호출
+  };
+
+  // 조사 업데이트 함수
+  const handleInvestigationUpdate = async () => {
+    if (currentRoom && playthroughId && token) {
+      try {
+        console.log('객체 정보 업데이트 요청:', currentRoom.id);
+        const roomObjectsData = await getRoomObjectsApi(playthroughId, currentRoom.id, token);
+        console.log('업데이트된 객체 정보:', roomObjectsData.objects);
+        
+        // interactiveObjects 상태 업데이트
+        const visibleObjects = roomObjectsData.objects.filter(obj => obj.isVisible);
+        setInteractiveObjects(visibleObjects);
+        
+      } catch (error) {
+        console.error('객체 정보 업데이트 중 오류:', error);
+      }
+    }
+  };
+
   const handleSubmissionComplete = (report) => {
     console.log('게임이 종료되었습니다.', report);
     // 필요시 추가 후처리
+  };
+
+  // 네비게이션 함수들
+  const handleGoBack = () => {
+    navigate(-1);
+  };
+
+  const handleGoHome = () => {
+    navigate('/');
+  };
+
+  const handleOpenChatLog = () => {
+    console.log('채팅 로그 열기');
+    setShowChatLogModal(true);
+  };
+
+  const handleOpenMemo = () => {
+    console.log('메모장 열기');
+    setShowMemoModal(true);
+  };
+
+  const handleSubmitReport = () => {
+    console.log('추리 보고서 제출');
+    setShowSubmitModal(true);
   };
 
   // 조사 상태 초기화 및 관리
@@ -985,6 +1054,29 @@ const GamePage = () => {
 
       {/* 상단 네비게이션 바 */}
       <TopNavBar>
+        <TopNavBarLayout>
+          <NavButtonGroup>
+            <NavButton onClick={handleGoBack}>🎭 뒤로</NavButton>
+            <NavButton onClick={handleGoHome}>🏛️ 홈</NavButton>
+          </NavButtonGroup>
+
+          <CenteredTitle>
+            <GameTitle>
+              {currentRoom ? `${gameData?.scenarioTitle || '탐정 게임'} - ${currentRoom.name}` : gameData?.scenarioTitle || '탐정 게임'}
+            </GameTitle>
+          </CenteredTitle>
+
+          <div style={{ display: 'flex', alignItems: 'center' }}>
+            <NavButtonGroup>
+              <NavButton onClick={handleOpenChatLog}>📜 채팅 로그</NavButton>
+              <NavButton $primary onClick={handleOpenMemo}>🔍 메모장</NavButton>
+            </NavButtonGroup>
+            <ActCounterContainer $highlight={showActHighlight}>
+              {actCount} / {actLimit}
+              <ActDescription>가능한 총 질의응답 횟수</ActDescription>
+            </ActCounterContainer>
+          </div>
+        </TopNavBarLayout>
       </TopNavBar>
       {/* 메인 게임 화면 */}
       <GameScreen $backgroundImage={currentBackground} $fadeOut={isRoomTransitioning}>
