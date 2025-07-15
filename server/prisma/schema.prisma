@@ -67,6 +67,8 @@ model InteractiveObject {
   isVisible     Boolean   @default(true)
   data          String?   // JSON 형태의 추가 데이터 (객체별 특별한 속성)
   imageUrl      String?   // webp 등 이미지 URL 또는 파일 경로 (nullable - 시나리오의 imageUrl을 기본값으로 사용)
+  requiredQuestions Int?  // 조사에 필요한 질문 수 (nullable, 기본값 없음 - clue/evidence 타입에만 적용)
+  isInInspectation Boolean @default(false)
   roomId        Int
   room          Room      @relation(fields: [roomId], references: [id])
   chatLogs      ChatLog[] // 객체와의 상호작용 로그
@@ -97,6 +99,7 @@ model Playthrough {
   createdAt  DateTime  @default(now())
   playTimeInSeconds   Int       @default(0)
   userId     Int
+  remainingQuestions Int   @default(30)
   scenarioId Int
   chatLogs   ChatLog[]
   scenario   Scenario  @relation(fields: [scenarioId], references: [id])

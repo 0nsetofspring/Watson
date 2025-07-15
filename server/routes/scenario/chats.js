@@ -41,6 +41,9 @@ router.post('/:playthroughId/chats', isLoggedIn, async (req, res) => {
       return res.status(404).json({ error: '진행 중인 게임을 찾을 수 없습니다.' });
     }
 
+    if (playthrough.remainingQuestions <= 0) {
+      return res.status(403).json({ error: '질문 기회를 모두 소진했습니다.' });
+    }
     // NPC 찾기 - npcId가 제공되면 해당 NPC를, 아니면 첫 번째 NPC 사용
     let currentNpc = null;
     if (npcId) {
@@ -91,6 +94,7 @@ router.post('/:playthroughId/chats', isLoggedIn, async (req, res) => {
     const systemPrompt = `
       You are a character in a mystery game. Please immerse yourself in the role based on the following information.
       You must answer in no more than two sentences.
+      You answers according to his setting prompt, but as the conversation progresses, you gradually leaks information.
     
       **Overall Scenario:**
       ${playthrough.scenario.settingPrompt}
@@ -121,6 +125,15 @@ router.post('/:playthroughId/chats', isLoggedIn, async (req, res) => {
     const result = await chat.sendMessage(message);
     const llmResponse = result.response;
     const llmMessageText = llmResponse.candidates[0].content.parts[0].text;
+
+    const updatedPlaythrough = await prisma.playthrough.update({
+      where: { id: Number(playthroughId) },
+      data: {
+        remainingQuestions: {
+          decrement: 1,
+        },
+      },
+    });
 
     const newNpcMessage = await prisma.chatLog.create({
       data: {

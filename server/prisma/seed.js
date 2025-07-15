@@ -160,7 +160,7 @@ async function main() {
         `- 숨기고 있는 사실: 당신은 범행의 모든 과정을 숨겨야 합니다. 특히 '수면제를 탄 음료', '서버실에서 가져온 랜선', '이준서의 카드로 서버실 출입을 시도한 실수' 등은 절대 들켜서는 안 됩니다.\n\n` +
         `[헷갈리는 포인트 제공]\n` +
         `- 교묘한 정보 흘리기: 당신은 탐정에게 협조하는 척하며, 다른 용의자들에게 의심이 가도록 정보를 제공합니다. \"박세영 씨가 이준서와 라운지에서 심하게 다투는 걸 봤어요. 팀 내 불화가 심각해 보였죠.\" 와 같이, 목격한 사실을 자신에게 유리하게 증언합니다. 또한 \"김지민이 칠판에 적힌 낙서 때문에 이준서에게 굉장히 화가 나 있었어요. 자존심이 많이 상한 것 같았죠.\"라며 김지민의 동기를 부각시킵니다.\n` +
-        `- 결정적 증거에 대한 대응: 탐정이 '약 봉투'에 대해 물으면, \"아, 그건 제 것이 맞아요. 제가 불면증이 있어서요. 하지만 그날은 너무 피곤해서 약 없이도 잘 수 있겠다 싶어 먹지 않았어요.\"라며 태연하게 인정하지만, 복용 사실은 부인합니다.`
+        `- 결정적 증거에 대한 대응: 탐정이 '약 봉투'에 대해 물으면, \"아, 그건 제 것이 맞아요. 제가 불면증이 있어요. 하지만 그날은 너무 피곤해서 약 없이도 잘 수 있겠다 싶어 먹지 않았어요.\"라며 태연하게 인정하지만, 복용 사실은 부인합니다.`
     }
   });
 
@@ -294,7 +294,8 @@ async function main() {
       data: 
         `- 웹 브라우저 기록: 사건 발생 1시간 전, 'how to fake git commit author (git 커밋 작성자 조작법)', doxepin side effects (독세핀 부작용)' 등 여러 의심스러운 검색 기록이 발견된다. 또한 'NEO 해커톤 2024 수상작' 페이지를 여러 번 방문한 기록이 있다.\n` +
         `- 휴지통 파일 복구: 삭제된 \`note.txt\` 파일 복구. \"김지민, 그 아이디어는 네 수준에 과분해. 내가 더 잘 만들 수 있어.\", \"김지연, 작년 일은 유감이지만 비즈니스는 비즈니스.\", \"박세영, 시키는 대로만 하면 A+은 받게 해줄게.\" 라는 내용이 적혀 있어, 세 명 모두와 갈등이 있었음을 암시한다.`,
-      imageUrl: "/images/objects/o_notebook.png"
+      imageUrl: "/images/objects/o_notebook.png",
+      requiredQuestions: 5
     },
     {
       roomId: hallway.id,
@@ -311,7 +312,8 @@ async function main() {
       data: `[조사 시 획득 정보]\n` +
         `- 약 봉투: '유성온천 약국' 이름이 적힌 작은 약 봉투. 처방전 없이 구매 가능한 강력한 수면유도제 '독세핀' 1정이 들어있어야 할 포장이 비어있다. (김지연과 연결)\n` +
         `- 부러진 USB: 반으로 부러진 USB 메모리 스틱. 물리적으로 손상되어 데이터를 읽을 수는 없지만, 표면에 희미하게 'JM_Backup'이라는 이니셜이 보인다. (김지민과 연결)`,
-      imageUrl: "/images/objects/o_trash.png"
+      imageUrl: "/images/objects/o_trash.png",
+      requiredQuestions: 4
     },
     {
       roomId: room102.id,
@@ -339,7 +341,8 @@ async function main() {
         `- 01:35: 김지연이 정수기에서 물을 받아 이준서에게 건네준다. 이준서는 음료를 받아들고 고개를 끄덕인다.\n` +
         `- 01:55: 박세영이 이준서에게 다가가 격렬하게 무언가 항의하지만, 이준서는 비웃으며 그녀를 무시한다. 박세영은 울먹이며 복도 쪽으로 뛰어간다.\n` +
         `- 02:10: 김지민이 화이트보드 쪽을 보다가, 굳은 표정으로 이준서에게 다가가 짧게 언쟁을 벌인다. 이준서는 그의 어깨를 툭 치고 자기 자리로 돌아간다.`,
-      imageUrl: "/images/objects/o_email.png"
+      imageUrl: "/images/objects/o_email.png",
+      requiredQuestions: 7
     },
     {
       roomId: hallway.id,
@@ -354,7 +357,8 @@ async function main() {
       isVisible: true,
       description: "102호 앞 복도, 박세영이 항상 앉아있는 의자 밑에 떨어져 있는 작은 다이어리. 귀여운 캐릭터 스티커가 붙어있다.",
       data: `\"그 인간은 악마다. 내 아이디어를 자기 것처럼 말하고, 내가 반박하려 하면 '너 하나 이 바닥에서 묻어버리는 건 일도 아니다'라고 협박했다.\n너무 무섭다. 여기서 도망치고 싶다.\" 라는 내용이 적혀있다.`,
-      imageUrl: "/images/objects/o_diary.png"
+      imageUrl: "/images/objects/o_diary.png",
+      requiredQuestions: 3
     },
     {
       roomId: lounge.id,
@@ -370,6 +374,7 @@ async function main() {
       description: "라운지 구석, 여러 개의 분실물 중 하나인 낡은 카드키. '서버 관리실'이라고 적혀있다.",
       data: "이 키를 사용하면 '비밀의 방: 서버 관리실'에 들어갈 수 있다.",
       imageUrl: "/images/objects/o_card.png"
+      // key 타입은 requiredQuestions 불필요
     },
     {
       roomId: serverRoom.id,
@@ -384,7 +389,8 @@ async function main() {
       isVisible: true,
       description: "서버실 캐비닛 안에 보관된 예비용 랜선 박스. 수십 개의 랜선 중 하나가 눈에 띄게 사라져있다.",
       data: "사라진 랜선은 피해자의 목에 남은 삭흔의 폭과 정확히 일치한다. 이는 범행 도구가 서버실에서 나왔음을 시사한다.",
-      imageUrl: "/images/objects/o_wire.png"
+      imageUrl: "/images/objects/o_wire.png",
+      requiredQuestions: 6
     },
     // ===== DOOR OBJECTS for Room Navigation =====
     // 102호 방의 문들

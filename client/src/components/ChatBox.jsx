@@ -484,7 +484,31 @@ const SendButton = styled.button`
   }
 `;
 
-const ChatBox = ({ playthroughId, currentInteraction, onClose }) => {
+// 행동력 안내 문구 스타일 추가
+const ActWarning = styled.div`
+  background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
+  color: #856404;
+  font-size: 12px;
+  font-family: 'Crimson Text', serif;
+  padding: 6px 12px;
+  border: 1px solid #ffeaa7;
+  border-radius: 4px;
+  margin-bottom: 8px;
+  text-align: center;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+`;
+
+// 질문 비용 안내 텍스트 스타일 추가
+const QuestionCostText = styled.div`
+  font-size: 11px;
+  color: #b8860b;
+  font-family: 'Crimson Text', serif;
+  text-align: center;
+  margin-top: 4px;
+  opacity: 0.8;
+`;
+
+const ChatBox = ({ playthroughId, currentInteraction, onClose, onActCountDecrease, currentActCount }) => {
   const { token } = useAuth();
   const messagesEndRef = useRef(null);
   
@@ -644,6 +668,12 @@ const ChatBox = ({ playthroughId, currentInteraction, onClose }) => {
     const currentInput = input.trim();
     if (!currentInput || isLoading) return;
 
+    // 행동력이 0일 때 메시지 전송 차단
+    if (currentActCount <= 0) {
+      alert('행동력이 부족합니다. 더 이상 대화할 수 없습니다.');
+      return;
+    }
+
     setInput('');
     setIsLoading(true);
 
@@ -658,6 +688,15 @@ const ChatBox = ({ playthroughId, currentInteraction, onClose }) => {
     try {
       const npcMessage = await sendChatMessage(playthroughId, currentInput, token, currentInteraction?.npcId);
       setMessages(prev => [...prev, npcMessage]);
+      
+      // 메시지 전송 성공 시 행동력 감소
+      console.log('ChatBox: 메시지 전송 성공, onActCountDecrease 호출 시작');
+      if (onActCountDecrease) {
+        onActCountDecrease();
+        console.log('ChatBox: onActCountDecrease 호출 완료');
+      } else {
+        console.error('ChatBox: onActCountDecrease 함수가 전달되지 않음');
+      }
 
     } catch (error) {
       console.error(error);
@@ -757,12 +796,13 @@ const ChatBox = ({ playthroughId, currentInteraction, onClose }) => {
             type="text"
             value={input}
             onChange={e => setInput(e.target.value)}
-            disabled={isLoading}
-            placeholder="메시지를 입력하세요..."
+            disabled={isLoading || currentActCount <= 0}
+            placeholder={currentActCount <= 0 ? "행동력이 부족합니다..." : "메시지를 입력하세요..."}
           />
-          <SendButton type="submit" disabled={isLoading || !input.trim()}>
+          <SendButton type="submit" disabled={isLoading || !input.trim() || currentActCount <= 0}>
             전송
           </SendButton>
+          <QuestionCostText>질문 횟수 -1</QuestionCostText>
         </InputArea>
       </ChatAreaContainer>
     </ChatBoxContainer>
