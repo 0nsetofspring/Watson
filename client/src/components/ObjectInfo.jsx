@@ -124,7 +124,7 @@ const InvestigationIcon = styled.div`
 
 const InvestigationText = styled.div`
   color: #2c1810;
-  font-size: 1.2rem;
+  font-size: 1.8rem;
   font-family: 'Crimson Text', serif;
   text-align: center;
   line-height: 1.6;
@@ -133,7 +133,7 @@ const InvestigationText = styled.div`
 
 const RequiredQuestionsText = styled.div`
   color: #b8860b;
-  font-size: 1rem;
+  font-size: 1.4rem;
   font-family: 'Cinzel', serif;
   font-weight: 600;
   text-align: center;
@@ -161,7 +161,7 @@ const CloseDetailButton = styled.button`
   border: 2px solid #8b4513;
   border-radius: 4px;
   padding: 10px 20px;
-  font-size: 0.9rem;
+  font-size: 1.3rem;
   font-family: 'Cinzel', serif;
   font-weight: 600;
   cursor: pointer;

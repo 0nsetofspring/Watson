@@ -265,6 +265,18 @@ const GameTitle = styled.h2`
 const GameScreen = styled.div`
   flex: 1;
   position: relative;
+  overflow: hidden;
+  transition: opacity 0.5s ease-in-out;
+  opacity: ${props => props.$fadeOut ? 0 : 1};
+`;
+
+// 배경 레이어 (전환 애니메이션 지원)
+const BackgroundLayer = styled.div`
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
   background-image: 
     url(${props => props.$backgroundImage || gameBackground}),
     radial-gradient(circle at 20% 20%, rgba(218, 165, 32, 0.1) 0%, transparent 50%),
@@ -273,9 +285,9 @@ const GameScreen = styled.div`
   background-position: center, center, center;
   background-repeat: no-repeat;
   background-blend-mode: overlay, multiply, normal;
-  overflow: hidden;
   transition: opacity 0.5s ease-in-out;
-  opacity: ${props => props.$fadeOut ? 0 : 1};
+  opacity: ${props => props.$opacity || 1};
+  z-index: ${props => props.$zIndex || 0};
   
   &::before {
     content: '';
@@ -304,7 +316,7 @@ const InteractiveLayer = styled.div`
   left: 0;
   width: 100%;
   height: 100%;
-  z-index: 5;
+  z-index: 10; /* 배경 레이어들보다 위에 표시 */
   transition: opacity 0.5s ease-in-out;
   opacity: ${props => props.$fadeOut ? 0 : 1};
   pointer-events: ${props => props.$fadeOut ? 'none' : 'auto'};
@@ -328,8 +340,8 @@ const InteractiveElement = styled.div`
     position: absolute;
     left: 50%;
     top: 50%;
-    width: 14px;
-    height: 14px;
+    width: 28px;
+    height: 28px;
     transform: translate(-50%, -50%);
     border-radius: 50%;
     background: radial-gradient(circle, #fffbe6 60%, #ffd700 100%);
@@ -502,6 +514,59 @@ const GamePage = () => {
   const [investigationStates, setInvestigationStates] = useState({});
   const [activeInvestigationObject, setActiveInvestigationObject] = useState(null);
 
+  // 배경 전환 시스템 상태 추가
+  const [baseBackgroundUrl, setBaseBackgroundUrl] = useState(null); // 원본 배경 URL (접미사 없는)
+  const [isBackgroundTransitioning, setIsBackgroundTransitioning] = useState(false);
+  const [nextBackground, setNextBackground] = useState(null);
+
+  // 시간대에 따른 배경 URL 생성 함수
+  const getTimeBasedBackgroundUrl = (baseUrl, actCount) => {
+    if (!baseUrl) return baseUrl;
+    
+    // 원본 URL에서 확장자 분리
+    const lastDotIndex = baseUrl.lastIndexOf('.');
+    const nameWithoutExt = lastDotIndex !== -1 ? baseUrl.substring(0, lastDotIndex) : baseUrl;
+    const extension = lastDotIndex !== -1 ? baseUrl.substring(lastDotIndex) : '';
+    
+    // 시간대별 접미사 결정
+    let suffix = '';
+    if (actCount >= 21 && actCount <= 30) {
+      suffix = '_1';
+    } else if (actCount >= 11 && actCount <= 20) {
+      suffix = '_2';
+    } else if (actCount >= 0 && actCount <= 10) {
+      suffix = '_3';
+    }
+    
+    console.log(`${nameWithoutExt}${suffix}${extension}`);
+    return `${nameWithoutExt}${suffix}${extension}`;
+  };
+
+  // 배경 전환 애니메이션 처리 함수
+  const transitionBackground = async (newBackgroundUrl) => {
+    if (!newBackgroundUrl || newBackgroundUrl === currentBackground) return;
+    
+    console.log('배경 전환 시작:', { 현재: currentBackground, 새로운: newBackgroundUrl });
+    
+    setIsBackgroundTransitioning(true);
+    setNextBackground(newBackgroundUrl);
+    
+    // 페이드아웃 대기 (500ms)
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    // 배경 변경
+    setCurrentBackground(newBackgroundUrl);
+    
+    // 페이드인 대기 (500ms)
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    // 전환 완료
+    setIsBackgroundTransitioning(false);
+    setNextBackground(null);
+    
+    console.log('배경 전환 완료:', newBackgroundUrl);
+  };
+
   // 게임 데이터 로드
   useEffect(() => {
     const fetchGameData = async () => {
@@ -517,12 +582,10 @@ const GamePage = () => {
         });
         setNpcs(allNpcs);
         if (roomsData.length > 0) {
-          const firstRoom = roomsData[0];
-          setCurrentRoom(firstRoom);
-          setCurrentBackground(firstRoom.backgroundImageUrl || gameBackground);
-          const visibleObjects = (firstRoom.interactiveObjects || []).filter(obj => obj.isVisible);
-          setInteractiveObjects(visibleObjects);
+          // switchRoom 함수가 모든 초기화를 처리하므로 직접 호출
+          await switchRoom(roomsData[0]);
         }
+        await switchRoom(roomsData[0]);
       } catch (err) {
         setError(err.message);
         console.error('게임 정보를 가져오는 중 에러:', err);
@@ -531,6 +594,7 @@ const GamePage = () => {
       }
     };
     if (playthroughId && token) fetchGameData();
+    
   }, [playthroughId, token]);
 
   // (가정된) 백엔드 API에서 actCount, actLimit을 받아오는 함수
@@ -553,6 +617,19 @@ const GamePage = () => {
     }
   }, [gameData]);
 
+  // actCount 변경 시 배경 전환 체크
+  useEffect(() => {
+    if (baseBackgroundUrl && actCount !== null && actCount !== undefined) {
+      const newBackgroundUrl = getTimeBasedBackgroundUrl(baseBackgroundUrl, actCount);
+      
+      // 현재 배경과 다른 경우에만 전환
+      if (newBackgroundUrl !== currentBackground) {
+        console.log('시간대 변경 감지:', { actCount, 현재배경: currentBackground, 새배경: newBackgroundUrl });
+        transitionBackground(newBackgroundUrl);
+      }
+    }
+  }, [actCount, baseBackgroundUrl]);
+
   // 실제 API에서 행동력 업데이트 후 상태 반영
   const handleActCountDecrease = () => {
     console.log('GamePage: handleActCountDecrease 함수 시작, 현재 actCount:', actCount);
@@ -560,6 +637,7 @@ const GamePage = () => {
     setActCount(newCount);
     
     console.log('🔥 행동력 감소:', { 이전: actCount, 현재: newCount, 상태업데이트됨: true });
+    console.log('🌅 배경 전환 체크:', { baseBackgroundUrl, currentBackground, newCount });
     console.log('🔍 현재 조사 상태들:', investigationStates);
     console.log('🎯 활성 조사 객체:', activeInvestigationObject);
     
@@ -569,9 +647,14 @@ const GamePage = () => {
     // 우선 activeInvestigationObject가 있는지 확인
     if (activeInvestigationObject && activeInvestigationObject.id) {
       const state = investigationStates[activeInvestigationObject.id];
-      if (state && state.investigationStartCount !== null && !state.isCompleted) {
+      
+      // 실제 객체의 현재 상태도 확인 (현재 방에 있는 경우만)
+      const actualObject = interactiveObjects.find(obj => obj.id == activeInvestigationObject.id);
+      const isActuallyInvestigating = actualObject ? actualObject.isInInspectation : true; // 다른 방에 있는 경우 true로 가정
+      
+      if (state && state.investigationStartCount !== null && !state.isCompleted && isActuallyInvestigating) {
         const progress = state.investigationStartCount - newCount;
-        console.log(`🎯 활성 조사 진행 상황 업데이트 - ${state.objectName}: ${progress}/${state.requiredQuestions}`);
+        console.log(`🎯 활성 조사 진행 상황 업데이트 - ${state.objectName}: ${progress}/${state.requiredQuestions} (현재방: ${!!actualObject}, 서버상태: ${isActuallyInvestigating})`);
         
         // 진행도가 음수가 되지 않도록 확인
         if (progress >= 0) {
@@ -582,6 +665,9 @@ const GamePage = () => {
             remaining: Math.max(0, state.requiredQuestions - progress)
           };
         }
+      } else if (state && !isActuallyInvestigating && actualObject) {
+        // activeInvestigationObject가 있지만 실제로는 조사가 완료된 경우
+        console.log(`⚠️ activeInvestigationObject 상태 불일치 - ${state.objectName}: 활성으로 표시되었지만 실제로는 비활성`);
       }
     }
     
@@ -589,9 +675,17 @@ const GamePage = () => {
     if (!activeInvestigation) {
       Object.keys(investigationStates).forEach(objectId => {
         const state = investigationStates[objectId];
-        if (state.investigationStartCount !== null && !state.isCompleted) {
+        
+        // 실제 객체의 현재 상태도 확인
+        const actualObject = interactiveObjects.find(obj => obj.id == objectId);
+        const isActuallyInvestigating = actualObject && actualObject.isInInspectation;
+        
+        // 클라이언트 상태와 서버 상태 모두 확인
+        if (state.investigationStartCount !== null && 
+            !state.isCompleted && 
+            isActuallyInvestigating) {
           const progress = state.investigationStartCount - newCount;
-          console.log(`🔍 조사 진행 상황 확인 - ${state.objectName}: ${progress}/${state.requiredQuestions}`);
+          console.log(`🔍 조사 진행 상황 확인 - ${state.objectName}: ${progress}/${state.requiredQuestions} (서버 상태: ${isActuallyInvestigating})`);
           
           // 진행도가 음수가 되지 않고, 아직 activeInvestigation이 없는 경우만
           if (progress >= 0 && !activeInvestigation) {
@@ -602,6 +696,9 @@ const GamePage = () => {
               remaining: Math.max(0, state.requiredQuestions - progress)
             };
           }
+        } else if (state.investigationStartCount !== null && !state.isCompleted && !isActuallyInvestigating) {
+          // 서버 상태와 클라이언트 상태가 불일치하는 경우 로그
+          console.log(`⚠️ 상태 불일치 감지 - ${state.objectName}: 클라이언트(진행중) vs 서버(${isActuallyInvestigating ? '진행중' : '완료/비활성'})`);
         }
       });
     }
@@ -655,10 +752,31 @@ const GamePage = () => {
       setIsLoadingRoom(true);
       setIsRoomTransitioning(true);
       await new Promise(resolve => setTimeout(resolve, 500));
+      
+      const originalBgUrl = room.backgroundImageUrl || gameBackground;
+      setBaseBackgroundUrl(originalBgUrl);
       setCurrentRoom(room);
-      setCurrentBackground(room.backgroundImageUrl || gameBackground);
-      const visibleObjects = (room.interactiveObjects || []).filter(obj => obj.isVisible);
-      setInteractiveObjects(visibleObjects);
+      
+      // 방 전환 시 현재 actCount에 맞는 배경 설정
+      const timeBasedBgUrl = getTimeBasedBackgroundUrl(originalBgUrl, actCount);
+      setCurrentBackground(timeBasedBgUrl);
+      
+      // 서버에서 최신 객체 상태를 가져오기 (키 수집 상태 등 반영)
+      try {
+        console.log('방 전환: 최신 객체 정보 요청 중...', room.id);
+        const roomObjectsData = await getRoomObjectsApi(playthroughId, room.id, token);
+        console.log('방 전환: 최신 객체 정보 로드 완료', roomObjectsData.objects);
+        
+        // 서버에서 가져온 최신 객체 정보 사용
+        const visibleObjects = roomObjectsData.objects.filter(obj => obj.isVisible);
+        setInteractiveObjects(visibleObjects);
+      } catch (apiError) {
+        console.error('방 전환: 서버에서 객체 정보 가져오기 실패, 기본 데이터 사용', apiError);
+        // API 실패 시 기본 데이터로 폴백
+        const visibleObjects = (room.interactiveObjects || []).filter(obj => obj.isVisible);
+        setInteractiveObjects(visibleObjects);
+      }
+      
       await new Promise(resolve => setTimeout(resolve, 100));
       setIsRoomTransitioning(false);
     } catch (err) {
@@ -767,13 +885,22 @@ const GamePage = () => {
           const investigationKey = `investigation_${obj.id}`;
           const storedData = JSON.parse(localStorage.getItem(investigationKey) || '{}');
           
+          // 서버 상태와 localStorage 상태를 동기화
+          // 조사 완료 여부는 localStorage 기준, 단 서버에서 다시 진행 중이면 미완료로 처리
+          const isCompleted = storedData.isComplete && !obj.isInInspectation;
+          
           newStates[obj.id] = {
             isInvestigationActive: obj.isInInspectation || false,
-            isCompleted: storedData.isComplete || false,
+            isCompleted: isCompleted,
             requiredQuestions: obj.requiredQuestions || 3,
             investigationStartCount: storedData.startCount || null,
             objectName: obj.name
           };
+          
+          // 상태 불일치 감지 및 로그 (완료된 조사가 다시 진행 중인 경우)
+          if (storedData.isComplete && obj.isInInspectation) {
+            console.log(`⚠️ 상태 불일치 감지 - ${obj.name}: localStorage(완료) vs 서버(진행중) -> 진행중으로 재설정`);
+          }
         }
       });
       
@@ -919,6 +1046,12 @@ const GamePage = () => {
       localStorage.setItem(investigationKey, JSON.stringify(updatedData));
       console.log('localStorage 업데이트:', updatedData);
       
+      // 완료된 조사가 현재 활성 조사인 경우 명시적으로 정리
+      if (activeInvestigationObject && activeInvestigationObject.id === objectData.id) {
+        console.log('🧹 완료된 조사가 현재 활성 조사이므로 activeInvestigationObject를 정리');
+        setActiveInvestigationObject(null);
+      }
+      
       // 전체 조사 상태 다시 확인
       await fetchGlobalInvestigationStatus();
       
@@ -992,9 +1125,32 @@ const GamePage = () => {
         try {
           const data = JSON.parse(element.data || '{}');
           if (data.requiresKey && data.requiredKeyName) {
-            const hasKey = localStorage.getItem(`hasKey_${data.requiredKeyName}`) === 'true';
-            if (!hasKey) {
-              alert(data.lockedMessage || `${data.requiredKeyName}가 필요합니다.`);
+            // 모든 방의 키를 확인해서 수집된 키가 있는지 체크
+            let hasCollectedKey = false;
+            
+            for (const room of rooms) {
+              if (room.interactiveObjects) {
+                const keyObject = room.interactiveObjects.find(obj => 
+                  obj.type === 'key' && obj.name === data.requiredKeyName && obj.isInInspectation
+                );
+                if (keyObject) {
+                  hasCollectedKey = true;
+                  break;
+                }
+              }
+            }
+            
+            // 현재 방의 키도 확인 (최신 상태 반영)
+            if (!hasCollectedKey) {
+              const currentRoomKey = interactiveObjects.find(obj => 
+                obj.type === 'key' && obj.name === data.requiredKeyName && obj.isInInspectation
+              );
+              hasCollectedKey = !!currentRoomKey;
+            }
+            
+            // 키가 수집되지 않은 경우
+            if (!hasCollectedKey) {
+              showAlert('error', data.lockedMessage || `${data.requiredKeyName}가 필요합니다.`);
               return;
             }
           }
@@ -1009,14 +1165,37 @@ const GamePage = () => {
         break;
       }
       case 'key': {
-        const keyName = element.name;
-        const hasKeyAlready = localStorage.getItem(`hasKey_${keyName}`) === 'true';
-        if (!hasKeyAlready) {
-          localStorage.setItem(`hasKey_${keyName}`, 'true');
-          handleItemAcquired(element);
-          alert(`${keyName}을(를) 획득했습니다!`);
-        } else {
-          alert('이미 보유하고 있는 키입니다.');
+        try {
+          // 이미 수집된 키인지 확인
+          if (element.isInInspectation) {
+            showAlert('warning', `이미 획득한 키입니다.`);
+            return;
+          }
+          
+          console.log('🔑 키 수집 시도:', element.name, '현재 활성 조사:', activeInvestigationObject);
+          
+          // 키 수집은 다른 조사와 무관하게 진행 가능
+          const result = await startInvestigationApi(element.id, playthroughId, token);
+          console.log('🔑 키 수집 API 응답:', result);
+          
+          // 로컬 상태 업데이트
+          setInteractiveObjects(prev => 
+            prev.map(obj => 
+              obj.id === element.id 
+                ? { ...obj, isInInspectation: true }
+                : obj
+            )
+          );
+          
+          showAlert('success', `🔑 "${element.name}"을(를) 획득했습니다!`);
+          
+        } catch (error) {
+          console.error('키 수집 중 오류:', error);
+          // 키 수집은 실패하더라도 일반적인 에러 알림 대신 구체적인 안내
+          if (error.message.includes('이미 진행 중인 조사')) {
+            console.warn('⚠️ 예상치 못한 조사 충돌 - 키 수집은 조사와 무관해야 함');
+          }
+          showAlert('error', error.message || '키를 수집할 수 없습니다.');
         }
         break;
       }
@@ -1099,7 +1278,23 @@ const GamePage = () => {
         </TopNavBarLayout>
       </TopNavBar>
       {/* 메인 게임 화면 */}
-      <GameScreen $backgroundImage={currentBackground} $fadeOut={isRoomTransitioning}>
+      <GameScreen $fadeOut={isRoomTransitioning}>
+        {/* 현재 배경 레이어 */}
+        <BackgroundLayer 
+          $backgroundImage={currentBackground} 
+          $opacity={isBackgroundTransitioning ? 0 : 1}
+          $zIndex={0}
+        />
+        
+        {/* 다음 배경 레이어 (전환 중에만 표시) */}
+        {isBackgroundTransitioning && nextBackground && (
+          <BackgroundLayer 
+            $backgroundImage={nextBackground} 
+            $opacity={1}
+            $zIndex={1}
+          />
+        )}
+        
         <InteractiveLayer $fadeOut={showChatBox || showObjectInfo || isRoomTransitioning}>
           {isLoadingRoom ? (
             <LoadingText>방 로딩 중...</LoadingText>
@@ -1139,13 +1334,32 @@ const GamePage = () => {
                           pointerEvents: 'none',
                           userSelect: 'none',
                           display: 'block',
+                          // 수집된 키는 반투명하게 표시
+                          opacity: element.type === 'key' && element.isInInspectation ? 0.5 : 1,
+                          filter: element.type === 'key' && element.isInInspectation ? 'grayscale(100%)' : 'none',
                         }}
                       />
                     ) : (
-                      <span className="glow-dot" />
+                      <span 
+                        className="glow-dot" 
+                        style={{
+                          // 수집된 키는 빛나는 점도 다르게 표시
+                          background: element.type === 'key' && element.isInInspectation 
+                            ? 'radial-gradient(circle, #888 60%, #666 100%)' 
+                            : 'radial-gradient(circle, #fffbe6 60%, #ffd700 100%)',
+                          boxShadow: element.type === 'key' && element.isInInspectation 
+                            ? '0 0 8px 2px #666' 
+                            : '0 0 12px 4px #ffd700, 0 0 24px 8px #fffbe6',
+                        }} 
+                      />
                     );
                   })()}
-                  <ElementLabel $showAbove={showLabelAbove}>{element.name}</ElementLabel>
+                  <ElementLabel $showAbove={showLabelAbove}>
+                    {element.type === 'key' && element.isInInspectation 
+                      ? `✅ ${element.name} (수집됨)` 
+                      : element.name
+                    }
+                  </ElementLabel>
                 </InteractiveElement>
               );
             })
