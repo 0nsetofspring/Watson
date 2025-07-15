@@ -34,7 +34,7 @@ const AlertContainer = styled.div`
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
   font-family: 'Cinzel', serif;
   font-weight: 600;
-  font-size: 12px;
+  font-size: 15px;
   z-index: 99999;
   animation: ${props => props.$isExiting ? 'slideOutRight' : 'slideInRight'} 0.5s ease-out;
   max-width: 200px;
