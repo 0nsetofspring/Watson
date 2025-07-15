@@ -197,12 +197,12 @@ router.post('/:playthroughId/conclude', isLoggedIn, async (req, res) => {
         // 6. UserEnding 테이블에 새로운 기록 생성
         await prisma.userEnding.create({
             data: {
-                userId: userId,
+                userId: req.user.id,
                 endingId: chosenEnding.id,
                 unlockedAt: new Date() // 기록된 시간
             }
         });
-        console.log(`User ${userId} unlocked ending ${chosenEnding.id}`);
+        console.log(`User ${req.user.id} unlocked ending ${chosenEnding.id}`);
     } else {
         console.log(`Could not find an ending for culprit: ${culpritName}`);
     }

@@ -282,7 +282,7 @@ const Message = styled.div`
       : 'linear-gradient(135deg, #e6d3b0, #d4c2a0)';
   }};
   color: ${props => props.$isUser ? '#1c1c1c' : '#2c1810'};
-  font-size: 15px;
+  font-size: 20px;
   font-family: 'Crimson Text', serif;
   line-height: 1.5;
   word-wrap: break-word;
