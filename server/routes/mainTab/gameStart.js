@@ -115,6 +115,7 @@ router.get('/:playthroughId', isLoggedIn, async (req, res) => {
       status: playthrough.status,
       createdAt: playthrough.createdAt,
       scenario: playthrough.scenario,
+      remainingQuestions: playthrough.remainingQuestions,
       chatLogs: playthrough.chatLogs
     });
   } catch (error) {
