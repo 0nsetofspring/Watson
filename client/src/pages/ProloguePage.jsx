@@ -8,6 +8,8 @@ import ChatBox from '../components/ChatBox'; // ChatBox import
 // 배경 이미지 import
 import gameBackground from '../assets/images/game_background.png';
 import paperPlate from '../assets/images/paper_plate.png';
+// 룰북 이미지 import (임시로 기존 이미지 사용, 나중에 실제 룰북 이미지로 교체)
+import ruleBookImage from '../assets/images/rulebook.png';
 
 // 타이틀 페이드인 애니메이션
 const titleFadeIn = keyframes`
@@ -86,6 +88,30 @@ const backgroundExpansionFadeOut = keyframes`
   to {
     transform: scale(4);
     opacity: 0;
+  }
+`;
+
+// 룰북 페이드인 애니메이션
+const ruleBookFadeIn = keyframes`
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+`;
+
+// 룰북 페이드아웃 애니메이션
+const ruleBookFadeOut = keyframes`
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(1.1);
   }
 `;
 
@@ -198,6 +224,69 @@ const PaperPlateContainer = styled.div`
   
   @media (max-width: 480px) {
     padding-top: 10%;
+  }
+`;
+
+// 룰북 컨테이너 스타일
+const RuleBookContainer = styled.div`
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.9);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  z-index: 10;
+  opacity: 0;
+  cursor: pointer;
+  
+  ${props => props.$stage === 'fadeIn' && css`
+    animation: ${ruleBookFadeIn} 1s ease-out forwards;
+  `}
+  
+  ${props => props.$stage === 'fadeOut' && css`
+    animation: ${ruleBookFadeOut} 0.8s ease-out forwards;
+  `}
+`;
+
+// 룰북 이미지 스타일
+const RuleBookImage = styled.img`
+  max-height: 90vh;
+  max-width: 90vw;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  border-radius: 10px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  // border: 3px solid #8b6f47;
+  
+  @media (max-width: 768px) {
+    max-height: 85vh;
+    max-width: 95vw;
+  }
+`;
+
+// 룰북 안내 텍스트 스타일
+const RuleBookText = styled.div`
+  color: #d4af37;
+  font-size: 1.2rem;
+  text-align: center;
+  margin-top: 20px;
+  font-weight: bold;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+  opacity: 0.8;
+  
+  @media (max-width: 768px) {
+    font-size: 1rem;
+    margin-top: 15px;
+  }
+  
+  @media (max-width: 480px) {
+    font-size: 0.9rem;
+    margin-top: 10px;
   }
 `;
 
@@ -385,7 +474,7 @@ const ProloguePage = () => {
   const [gameData, setGameData] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [animationStage, setAnimationStage] = useState('initial'); // 'initial', 'titleVisible', 'titleFadeOut', 'prologueStart', 'prologueVisible', 'prologueEnd', 'expansion', 'gameReady'
+  const [animationStage, setAnimationStage] = useState('initial'); // 'initial', 'ruleBook', 'ruleBookFadeOut', 'titleVisible', 'titleFadeOut', 'prologueStart', 'prologueVisible', 'prologueEnd', 'expansion', 'gameReady'
 
   useEffect(() => {
     const fetchGameData = async () => {
@@ -408,27 +497,41 @@ const ProloguePage = () => {
 
   useEffect(() => {
     if (!isLoading && gameData && !error) {
-      setAnimationStage('titleVisible');
-      const titleTimer = setTimeout(() => {
-        setAnimationStage('titleFadeOut');
-      }, 3000);
+      // 1초 후 룰북 표시
+      const ruleBookTimer = setTimeout(() => {
+        setAnimationStage('ruleBook');
+      }, 1000);
 
-      // 4초 후 프롤로그 시작 (paper_plate 등장)
-      const prologueStartTimer = setTimeout(() => {
-        setAnimationStage('prologueStart');
-      }, 4000);
-
-      // 5.5초 후 프롤로그 완전 표시
-      const prologueVisibleTimer = setTimeout(() => {
-        setAnimationStage('prologueVisible');
-      }, 5500);
       return () => {
-        clearTimeout(titleTimer);
-        clearTimeout(prologueStartTimer);
-        clearTimeout(prologueVisibleTimer);
+        clearTimeout(ruleBookTimer);
       };
     }
   }, [isLoading, gameData, error]);
+
+  // 룰북 클릭 시 다음 단계로 진행
+  const handleRuleBookClick = () => {
+    setAnimationStage('ruleBookFadeOut');
+    
+    // 0.8초 후 시나리오 제목 표시
+    setTimeout(() => {
+      setAnimationStage('titleVisible');
+    }, 800);
+
+    // 4.8초 후 제목 페이드아웃 (0.8 + 4초)
+    setTimeout(() => {
+      setAnimationStage('titleFadeOut');
+    }, 4800);
+
+    // 5.8초 후 프롤로그 시작 (0.8 + 5초)
+    setTimeout(() => {
+      setAnimationStage('prologueStart');
+    }, 5800);
+
+    // 7.3초 후 프롤로그 완전 표시 (0.8 + 6.5초)
+    setTimeout(() => {
+      setAnimationStage('prologueVisible');
+    }, 7300);
+  };
 
   const handleFinishPrologue = () => {
     setAnimationStage('prologueEnd');
@@ -482,6 +585,18 @@ const ProloguePage = () => {
           animationStage === 'expansion' ? 'expansion' : 'normal'
         }
       />
+      
+      {/* 룰북 표시 */}
+      {(animationStage === 'ruleBook' || animationStage === 'ruleBookFadeOut') && (
+        <RuleBookContainer 
+          $stage={animationStage === 'ruleBookFadeOut' ? 'fadeOut' : 'fadeIn'}
+          onClick={handleRuleBookClick}
+        >
+          <RuleBookImage src={ruleBookImage} alt="게임 룰북" />
+          <RuleBookText>클릭하여 계속하기</RuleBookText>
+        </RuleBookContainer>
+      )}
+      
       {gameData && (
         <>
           <ScenarioTitle
