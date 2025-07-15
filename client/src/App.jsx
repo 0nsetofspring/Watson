@@ -8,6 +8,7 @@ import ScenarioList from './components/ScenarioList';
 import ContinueGame from './components/ContinueGame';
 import ProloguePage from './pages/ProloguePage';
 import GamePage from './pages/GamePage';     // 새로운 GamePage 추가
+import ConclusionPage from './pages/ConclusionPage';
 
 function App() {
   return (
@@ -72,7 +73,17 @@ function App() {
 
           {/* 5. 앞으로 만들 다른 페이지들도 PrivateRoute로 감싸서 보호합니다. */}
           {/* 예: <Route path="/community" element={<PrivateRoute><CommunityPage /></PrivateRoute>} /> */}
+
+          <Route
+              path="/conclusion"
+              element={
+                <PrivateRoute>
+                  <ConclusionPage />
+                </PrivateRoute>
+              }
+            />
         </Routes>
+
       </main>
     </div>
   );
