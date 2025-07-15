@@ -1,63 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import styled from 'styled-components';
-
-// 조사 완료 알림 (상단 우측)
-const InvestigationCompleteAlert = styled.div`
-  position: fixed;
-  top: 80px;
-  right: 20px;
-  background: linear-gradient(135deg, #4caf50 0%, #45a049 100%);
-  color: white;
-  padding: 16px 24px;
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-  font-family: 'Cinzel', serif;
-  font-weight: 600;
-  font-size: 14px;
-  z-index: 9999;
-  animation: slideInRight 0.5s ease-out;
-  max-width: 300px;
-  
-  @keyframes slideInRight {
-    from {
-      transform: translateX(100%);
-      opacity: 0;
-    }
-    to {
-      transform: translateX(0);
-      opacity: 1;
-    }
-  }
-`;
-
-// 경고 알림 (상단 우측)
-const WarningAlert = styled.div`
-  position: fixed;
-  top: 80px;
-  right: 20px;
-  background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%);
-  color: white;
-  padding: 16px 24px;
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-  font-family: 'Cinzel', serif;
-  font-weight: 600;
-  font-size: 14px;
-  z-index: 9999;
-  animation: slideInRight 0.5s ease-out;
-  max-width: 300px;
-  
-  @keyframes slideInRight {
-    from {
-      transform: translateX(100%);
-      opacity: 0;
-    }
-    to {
-      transform: translateX(0);
-      opacity: 1;
-    }
-  }
-`;
 
 // 전체 컨테이너 (최소한의 배경)
 const SimpleContainer = styled.div`
@@ -239,7 +181,7 @@ const CloseButton = styled.button`
   right: 24px;
   background: none;
   border: none;
-  color: #333;
+  color: #FFFFFF;
   font-size: 1.7rem;
   font-weight: bold;
   cursor: pointer;
@@ -248,115 +190,55 @@ const CloseButton = styled.button`
   &:hover { opacity: 1; }
 `;
 
-const ObjectInfo = ({ objectData, onClose, onItemAcquired, onClueAdded, currentActCount }) => {
+const ObjectInfo = ({ 
+  objectData, 
+  onClose, 
+  onItemAcquired, 
+  onClueAdded, 
+  currentActCount, 
+  playthroughId,
+  investigationState,
+  onStartInvestigation,
+  onCompleteInvestigation,
+  canCompleteInvestigation,
+  canAccessDetail,
+  investigationProgress
+}) => {
   const [showDetailPanel, setShowDetailPanel] = useState(false);
-  const [isInvestigationComplete, setIsInvestigationComplete] = useState(false);
-  const [requiredQuestions, setRequiredQuestions] = useState(3);
-  const [investigationStartCount, setInvestigationStartCount] = useState(null);
-  const [showCompletionAlert, setShowCompletionAlert] = useState(false);
-  const [showWarningAlert, setShowWarningAlert] = useState(false);
-  const [warningMessage, setWarningMessage] = useState('');
-
-  useEffect(() => {
-    if (objectData) {
-      // data 컬럼에서 필요한 질문 수 파싱
-      try {
-        const data = JSON.parse(objectData.data || '{}');
-        const required = data.requiredQuestions || 3;
-        setRequiredQuestions(required);
-        
-        // 조사 상태 확인
-        const investigationKey = `investigation_${objectData.id}`;
-        const storedData = JSON.parse(localStorage.getItem(investigationKey) || '{}');
-        setIsInvestigationComplete(storedData.isComplete || false);
-        setInvestigationStartCount(storedData.startCount);
-      } catch (error) {
-        console.error('objectData.data 파싱 에러:', error);
-        setRequiredQuestions(3);
-      }
-    }
-  }, [objectData]);
-
-  // currentActCount 변경 시 조사 진행도 실시간 업데이트
-  useEffect(() => {
-    if (investigationStartCount !== null && !isInvestigationComplete) {
-      const currentProgress = investigationStartCount - currentActCount;
-      
-      // 필요한 질문 수에 도달했는지 체크
-      if (currentProgress >= requiredQuestions) {
-        // 자동으로 조사 완료 처리는 하지 않고, 사용자가 버튼을 클릭하도록 유지
-        // 하지만 진행도는 실시간으로 업데이트됨
-      }
-    }
-  }, [currentActCount, investigationStartCount, requiredQuestions, isInvestigationComplete]);
-
-  // 완료 알림 자동 숨김
-  useEffect(() => {
-    if (showCompletionAlert) {
-      const timer = setTimeout(() => {
-        setShowCompletionAlert(false);
-      }, 4000);
-      return () => clearTimeout(timer);
-    }
-  }, [showCompletionAlert]);
-
-  // 경고 알림 자동 숨김
-  useEffect(() => {
-    if (showWarningAlert) {
-      const timer = setTimeout(() => {
-        setShowWarningAlert(false);
-      }, 3000);
-      return () => clearTimeout(timer);
-    }
-  }, [showWarningAlert]);
 
   if (!objectData) return null;
 
-  // 현재 진행 중인 다른 조사가 있는지 확인
-  const checkActiveInvestigation = () => {
-    const allKeys = Object.keys(localStorage);
-    for (const key of allKeys) {
-      if (key.startsWith('investigation_') && key !== `investigation_${objectData.id}`) {
-        try {
-          const data = JSON.parse(localStorage.getItem(key) || '{}');
-          if (data.startCount !== undefined && !data.isComplete) {
-            const investigationId = key.replace('investigation_', '');
-            return investigationId;
-          }
-        } catch (error) {
-          continue;
-        }
-      }
-    }
-    return null;
-  };
-
   // '자세히 조사' 버튼 클릭 핸들러
-  const handleInspect = () => {
-    // 이미 완료된 조사는 바로 패널 열기
-    if (isInvestigationComplete) {
+  const handleInspect = async () => {
+    // 조사 완료 가능한 경우 완료 처리
+    if (canCompleteInvestigation) {
+      const success = await onCompleteInvestigation();
+      if (success) {
+        setShowDetailPanel(true);
+      }
+      return;
+    }
+
+    // 상세 정보 접근 가능한 경우 바로 패널 열기
+    if (canAccessDetail) {
       setShowDetailPanel(true);
       return;
     }
 
-    // 다른 진행 중인 조사가 있는지 확인
-    const activeInvestigationId = checkActiveInvestigation();
-    if (activeInvestigationId) {
-      setWarningMessage('한 번에 하나의 단서만 조사할 수 있습니다. 진행 중인 조사를 완료해주세요.');
-      setShowWarningAlert(true);
+    // 이미 조사가 시작된 경우 바로 패널 열기
+    if (hasEverStarted) {
+      setShowDetailPanel(true);
       return;
     }
 
-    // 새로운 조사 시작
-    const investigationKey = `investigation_${objectData.id}`;
-    const newInvestigationData = {
-      startCount: currentActCount,
-      isComplete: false,
-      objectName: objectData.name
-    };
-    localStorage.setItem(investigationKey, JSON.stringify(newInvestigationData));
-    setInvestigationStartCount(currentActCount);
-    setShowDetailPanel(true);
+    // 조사 시작 시도
+    if (onStartInvestigation) {
+      const success = await onStartInvestigation();
+      if (success) {
+        setShowDetailPanel(true);
+      }
+      // 실패 시 알림은 GamePage에서 처리되므로 여기서는 아무것도 하지 않음
+    }
   };
 
   // 상세 패널 닫기
@@ -364,62 +246,72 @@ const ObjectInfo = ({ objectData, onClose, onItemAcquired, onClueAdded, currentA
     setShowDetailPanel(false);
   };
 
-  // 조사 완료 처리
-  const handleCompleteInvestigation = () => {
-    const investigationKey = `investigation_${objectData.id}`;
-    const updatedData = {
-      startCount: investigationStartCount,
-      isComplete: true,
-      objectName: objectData.name
-    };
-    localStorage.setItem(investigationKey, JSON.stringify(updatedData));
-    setIsInvestigationComplete(true);
-    setShowCompletionAlert(true);
+  // 조사 완료 처리 (GamePage에 위임)
+  const handleCompleteInvestigation = async () => {
+    const success = await onCompleteInvestigation();
+    if (success) {
+      // 성공 시 필요한 UI 업데이트가 있다면 여기에
+    }
   };
-
-  // 현재 객체의 개별 진행 상황 계산
-  const getIndividualProgress = () => {
-    if (investigationStartCount === null) return 0;
-    return investigationStartCount - currentActCount;
-  };
-
-  const individualProgress = getIndividualProgress();
-  const canAccessDetail = individualProgress >= requiredQuestions || isInvestigationComplete;
 
   // 렌더링할 상세 내용 가져오기
   const getDetailContent = () => {
-    try {
-      const data = JSON.parse(objectData.data || '{}');
-      return data.content || data.description || '상세 정보가 없습니다.';
-    } catch (error) {
-      return objectData.data || '상세 정보가 없습니다.';
+    return objectData.data || '상세 정보가 없습니다.';
+  };
+
+  // 조사 상태 정보 (GamePage에서 전달받은 값 사용)
+  const requiredQuestions = investigationState?.requiredQuestions || 3;
+  const isCompleted = investigationState?.isCompleted || false;
+  
+  // 조사가 진행 중인지 확인 (한 번이라도 시작되었고 아직 완료되지 않은 경우)
+  const hasStartedInvestigation = investigationState?.investigationStartCount !== null && !isCompleted;
+  
+  // 조사가 한 번이라도 시작되었는지 확인 (완료된 것 포함)
+  const hasEverStarted = investigationState?.investigationStartCount !== null || isCompleted;
+
+  // 디버깅을 위한 로그
+  console.log(`🔍 ObjectInfo 상태 - ${objectData?.name}:`, {
+    investigationState,
+    hasStartedInvestigation,
+    hasEverStarted,
+    isCompleted,
+    canCompleteInvestigation,
+    canAccessDetail,
+    investigationProgress,
+    requiredQuestions,
+    '진행상황': `${investigationProgress}/${requiredQuestions}`,
+    '조건체크': {
+      '완료됨': isCompleted,
+      '진행도충족': investigationProgress >= requiredQuestions,
+      '조사시작됨': investigationState?.investigationStartCount !== null,
+      '활성상태': investigationState?.isInvestigationActive
+    }
+  });
+
+  // 버튼 텍스트 결정
+  const getInspectButtonText = () => {
+    if (isCompleted) {
+      return "상세 정보 보기";
+    } else if (canCompleteInvestigation) {
+      return "조사 완료하기";
+    } else if (canAccessDetail) {
+      return "상세 정보 보기";
+    } else if (hasStartedInvestigation) {
+      return "조사 진행 상황 보기";
+    } else {
+      return "조사 시작하기";
     }
   };
 
   return (
     <>
-      {/* 조사 완료 알림 */}
-      {showCompletionAlert && (
-        <InvestigationCompleteAlert>
-          🔍 "{objectData.name}" 조사 완료!<br/>
-          상세 정보를 확인할 수 있습니다.
-        </InvestigationCompleteAlert>
-      )}
-
-      {/* 경고 알림 */}
-      {showWarningAlert && (
-        <WarningAlert>
-          ⚠️ {warningMessage}
-        </WarningAlert>
-      )}
-
       <SimpleContainer $bgimage={objectData.imageUrl} $shifted={showDetailPanel}>
         <CloseButton onClick={onClose}>✕</CloseButton>
         <InfoBox>
           <DescriptionText>
             {objectData.description || '이 객체에 대한 설명이 없습니다.'}
           </DescriptionText>
-          <InspectButton onClick={handleInspect}>조사 시작하기</InspectButton>
+          <InspectButton onClick={handleInspect}>{getInspectButtonText()}</InspectButton>
         </InfoBox>
       </SimpleContainer>
 
@@ -437,22 +329,37 @@ const ObjectInfo = ({ objectData, onClose, onItemAcquired, onClueAdded, currentA
             </CloseDetailButton>
           </>
         ) : (
-          // 조사 중 상태 표시
+          // 조사 중 또는 조사 시작 전 상태 표시
           <>
             <InvestigationIcon>🔍</InvestigationIcon>
             <InvestigationText>
-              "{objectData.name}" 조사 중입니다.
+              {hasStartedInvestigation 
+                ? `"${objectData.name}" 조사 중입니다.`
+                : `"${objectData.name}" 조사 준비`
+              }
             </InvestigationText>
             <RequiredQuestionsText>
               {requiredQuestions}번의 질의응답 후 확인 가능합니다.
             </RequiredQuestionsText>
-            <RequiredQuestionsText>
-              (이 단서 진행: {individualProgress}/{requiredQuestions})
-            </RequiredQuestionsText>
-            {individualProgress >= requiredQuestions && !isInvestigationComplete && (
-              <InspectButton onClick={handleCompleteInvestigation}>
-                조사 완료하기
-              </InspectButton>
+            {hasStartedInvestigation ? (
+              <>
+                <RequiredQuestionsText>
+                  (이 단서 진행: {investigationProgress}/{requiredQuestions})
+                </RequiredQuestionsText>
+                {canCompleteInvestigation && (
+                  <InspectButton onClick={handleCompleteInvestigation}>
+                    조사 완료하기
+                  </InspectButton>
+                )}
+              </>
+            ) : hasEverStarted ? (
+              <RequiredQuestionsText>
+                조사가 완료되었습니다.
+              </RequiredQuestionsText>
+            ) : (
+              <RequiredQuestionsText>
+                조사를 시작하면 질문 진행도가 추적됩니다.
+              </RequiredQuestionsText>
             )}
             <CloseDetailButton onClick={handleCloseDetail}>
               돌아가기

@@ -690,8 +690,12 @@ const ChatBox = ({ playthroughId, currentInteraction, onClose, onActCountDecreas
       setMessages(prev => [...prev, npcMessage]);
       
       // 메시지 전송 성공 시 행동력 감소
+      console.log('ChatBox: 메시지 전송 성공, onActCountDecrease 호출 시작');
       if (onActCountDecrease) {
         onActCountDecrease();
+        console.log('ChatBox: onActCountDecrease 호출 완료');
+      } else {
+        console.error('ChatBox: onActCountDecrease 함수가 전달되지 않음');
       }
 
     } catch (error) {

@@ -8,6 +8,7 @@ const scenariosRouter = require('./routes/mainTab/scenarios');
 const gameStartRouter = require('./routes/mainTab/gameStart');
 const chatsRouter = require('./routes/scenario/chats');
 const highlightRouter = require('./routes/scenario/highlight');
+const investigationRouter = require('./routes/scenario/investigation');
 
 const app = express();
 const prisma = new PrismaClient();
@@ -29,6 +30,7 @@ app.use('/api/scenarios', scenariosRouter); // '/api/scenarios' 경로로 오는
 app.use('/api/playthroughs', gameStartRouter); // POST /, GET /active
 app.use('/api/playthroughs', chatsRouter);     // POST /:playthroughId/chats
 app.use('/api/chats', highlightRouter);
+app.use('/api/scenario/investigation', investigationRouter);
 
 // 서버 실행
 app.listen(PORT, () => {
