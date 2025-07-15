@@ -30,7 +30,6 @@ const ModalOverlay = styled.div`
       rgba(139, 69, 19, 0.08) 2px,
       rgba(139, 69, 19, 0.08) 4px
     );
-  backdrop-filter: blur(8px);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -65,16 +64,7 @@ const ReportContainer = styled.div`
   position: relative;
   
   &::before {
-    content: '';
-    position: absolute;
-    top: -3px;
-    left: -3px;
-    right: -3px;
-    bottom: -3px;
-    background: linear-gradient(45deg, #daa520, #8b4513, #daa520, #8b4513);
-    border-radius: 8px;
-    z-index: -1;
-    animation: ${paperTexture} 2s ease-in-out infinite alternate;
+    // animation: ${paperTexture} 2s ease-in-out infinite alternate; // ← 이 줄을 주석 처리
   }
 `;
 
