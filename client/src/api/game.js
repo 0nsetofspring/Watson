@@ -128,3 +128,28 @@ export const getPlaythroughApi = async (playthroughId, token) => {
 
   return response.json();
 };
+
+/**
+ * @description 최종 추리 제출 API
+ * @param {number} playthroughId - 현재 게임 ID
+ * @param {string} culpritName - 지목한 범인 이름
+ * @param {string} reasoningText - 추리 내용
+ * @param {string} token - 인증 토큰
+ * @returns {Promise<object>} - AI가 생성한 평가 결과 보고서
+ */
+export const concludePlaythroughApi = async (playthroughId, culpritName, reasoningText, token) => {
+  const response = await fetch(`${API_BASE_URL}/api/playthroughs/${playthroughId}/conclude`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`,
+    },
+    body: JSON.stringify({ culpritName, reasoningText }),
+  });
+
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data.error || '추리 제출에 실패했습니다.');
+  }
+  return data;
+};
