@@ -254,7 +254,7 @@ const NPCAvatar = styled.div`
   border-radius: 50%;
   background: ${props => props.$imageUrl ? `url(${props.$imageUrl})` : 'linear-gradient(135deg, #8b4513, #654321)'};
   background-size: cover;
-  background-position: center;
+  background-position: top center;
   margin: 0 auto 20px;
   display: flex;
   align-items: center;

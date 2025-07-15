@@ -34,7 +34,7 @@ const AlertContainer = styled.div`
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
   font-family: 'Cinzel', serif;
   font-weight: 600;
-  font-size: 12px;
+  font-size: 15px;
   z-index: 99999;
   animation: ${props => props.$isExiting ? 'slideOutRight' : 'slideInRight'} 0.5s ease-out;
   max-width: 200px;
@@ -117,16 +117,14 @@ const TopNavBarLayout = styled.div`
 `;
 
 const CenteredTitle = styled.div`
-  position: absolute;
-  left: 50%;
-  top: 0;
-  transform: translateX(-50%);
+  position: relative;
   height: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
   pointer-events: none;
   z-index: 10;
+  margin-left: 20px;
 `;
 
 // 게임 페이지 컨테이너 (전체 화면)
@@ -349,7 +347,7 @@ const InteractiveElement = styled.div`
 // 요소 이름 표시 (호버 시)
 const ElementLabel = styled.div`
   position: absolute;
-  bottom: -30px;
+  ${props => props.$showAbove ? 'top: -35px;' : 'bottom: -30px;'}
   left: 50%;
   transform: translateX(-50%);
   background: linear-gradient(135deg, #f4e8d0 0%, #e6d3b0 100%);
@@ -357,7 +355,7 @@ const ElementLabel = styled.div`
   padding: 4px 8px;
   border-radius: 4px;
   border: 1px solid #8b4513;
-  font-size: 12px;
+  font-size: 20px;
   font-family: 'Cinzel', serif;
   font-weight: 500;
   white-space: nowrap;
@@ -374,14 +372,21 @@ const ElementLabel = styled.div`
   &::before {
     content: '';
     position: absolute;
-    top: -4px;
+    ${props => props.$showAbove ? `
+      bottom: -4px;
+      border-left: 4px solid transparent;
+      border-right: 4px solid transparent;
+      border-top: 4px solid #8b4513;
+    ` : `
+      top: -4px;
+      border-left: 4px solid transparent;
+      border-right: 4px solid transparent;
+      border-bottom: 4px solid #8b4513;
+    `}
     left: 50%;
     transform: translateX(-50%);
     width: 0;
     height: 0;
-    border-left: 4px solid transparent;
-    border-right: 4px solid transparent;
-    border-bottom: 4px solid #8b4513;
   }
 `;
 
@@ -1055,21 +1060,36 @@ const GamePage = () => {
       {/* 상단 네비게이션 바 */}
       <TopNavBar>
         <TopNavBarLayout>
-          <NavButtonGroup>
-            <NavButton onClick={handleGoBack}>🎭 뒤로</NavButton>
-            <NavButton onClick={handleGoHome}>🏛️ 홈</NavButton>
-          </NavButtonGroup>
-
-          <CenteredTitle>
-            <GameTitle>
-              {currentRoom ? `${gameData?.scenarioTitle || '탐정 게임'} - ${currentRoom.name}` : gameData?.scenarioTitle || '탐정 게임'}
-            </GameTitle>
-          </CenteredTitle>
+          <div style={{ display: 'flex', alignItems: 'center' }}>
+            <NavButtonGroup>
+              <NavButton onClick={handleGoBack}>🎭 뒤로</NavButton>
+              <NavButton onClick={handleGoHome}>🏛️ 홈</NavButton>
+            </NavButtonGroup>
+            
+            <CenteredTitle>
+              <GameTitle>
+                {currentRoom ? `${gameData?.scenarioTitle || '탐정 게임'} - ${currentRoom.name}` : gameData?.scenarioTitle || '탐정 게임'}
+              </GameTitle>
+            </CenteredTitle>
+          </div>
 
           <div style={{ display: 'flex', alignItems: 'center' }}>
             <NavButtonGroup>
               <NavButton onClick={handleOpenChatLog}>📜 채팅 로그</NavButton>
-              <NavButton $primary onClick={handleOpenMemo}>🔍 메모장</NavButton>
+              <NavButton onClick={handleOpenMemo}>🔍 메모장</NavButton>
+              <NavButton 
+                $primary 
+                onClick={handleSubmitReport} 
+                style={{ 
+                  background: 'linear-gradient(135deg, #c0392b 0%, #e74c3c 100%)', 
+                  color: 'white', 
+                  border: '2px solid #8b0000',
+                  fontWeight: 'bold',
+                  textShadow: '0 1px 2px rgba(0, 0, 0, 0.8)'
+                }}
+              >
+                📋 추리 보고서 제출
+              </NavButton>
             </NavButtonGroup>
             <ActCounterContainer $highlight={showActHighlight}>
               {actCount} / {actLimit}
@@ -1084,45 +1104,51 @@ const GamePage = () => {
           {isLoadingRoom ? (
             <LoadingText>방 로딩 중...</LoadingText>
           ) : (
-            interactiveObjects.map(element => (
-              <InteractiveElement
-                key={element.id}
-                $x={element.x}
-                $y={element.y}
-                $width={element.width}
-                $height={element.height}
-                onClick={() => handleElementClick(element)}
-              >
-                {(() => {
-                  // 모든 객체 타입에 대해 이미지 URL 확인
-                  let imageUrl = element.imageUrl;
-                  
-                  // NPC의 경우, npcInfo.imageUrl도 확인
-                  if (element.type === 'npc' && !imageUrl && element.npcInfo && element.npcInfo.imageUrl) {
-                    imageUrl = element.npcInfo.imageUrl;
-                  }
-                  
-                  // 이미지가 있으면 이미지를 표시, 없으면 빛나는 점 표시
-                  return imageUrl ? (
-                    <img
-                      src={imageUrl}
-                      alt={element.name}
-                      style={{
-                        width: '100%',
-                        height: '100%',
-                        objectFit: 'contain',
-                        pointerEvents: 'none',
-                        userSelect: 'none',
-                        display: 'block',
-                      }}
-                    />
-                  ) : (
-                    <span className="glow-dot" />
-                  );
-                })()}
-                <ElementLabel>{element.name}</ElementLabel>
-              </InteractiveElement>
-            ))
+            interactiveObjects.map(element => {
+              // 라벨 위치 결정: 요소가 화면 하단 20% 이내에 있으면 위쪽에 표시
+              const elementY = parseFloat(element.y.replace('%', ''));
+              const showLabelAbove = elementY > 80; // 화면 하단 20% 이내
+              
+              return (
+                <InteractiveElement
+                  key={element.id}
+                  $x={element.x}
+                  $y={element.y}
+                  $width={element.width}
+                  $height={element.height}
+                  onClick={() => handleElementClick(element)}
+                >
+                  {(() => {
+                    // 모든 객체 타입에 대해 이미지 URL 확인
+                    let imageUrl = element.imageUrl;
+                    
+                    // NPC의 경우, npcInfo.imageUrl도 확인
+                    if (element.type === 'npc' && !imageUrl && element.npcInfo && element.npcInfo.imageUrl) {
+                      imageUrl = element.npcInfo.imageUrl;
+                    }
+                    
+                    // 이미지가 있으면 이미지를 표시, 없으면 빛나는 점 표시
+                    return imageUrl ? (
+                      <img
+                        src={imageUrl}
+                        alt={element.name}
+                        style={{
+                          width: '100%',
+                          height: '100%',
+                          objectFit: 'contain',
+                          pointerEvents: 'none',
+                          userSelect: 'none',
+                          display: 'block',
+                        }}
+                      />
+                    ) : (
+                      <span className="glow-dot" />
+                    );
+                  })()}
+                  <ElementLabel $showAbove={showLabelAbove}>{element.name}</ElementLabel>
+                </InteractiveElement>
+              );
+            })
           )}
         </InteractiveLayer>
         {/* 오버레이 채팅 인터페이스 (NPC 전용) */}
