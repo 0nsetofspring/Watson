@@ -511,6 +511,7 @@ const QuestionCostText = styled.div`
 const ChatBox = ({ playthroughId, currentInteraction, onClose, onActCountDecrease, currentActCount }) => {
   const { token } = useAuth();
   const messagesEndRef = useRef(null);
+  const inputRef = useRef(null);
   
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
@@ -638,6 +639,16 @@ const ChatBox = ({ playthroughId, currentInteraction, onClose, onActCountDecreas
       document.removeEventListener('keydown', handleKeyDown);
     };
   }, [onClose]);
+
+  // 로딩이 끝나면 입력 필드에 자동 포커스
+  useEffect(() => {
+    if (!isLoading && inputRef.current && currentActCount > 0) {
+      // 약간의 지연을 두어 DOM 업데이트가 완료된 후 포커스 설정
+      setTimeout(() => {
+        inputRef.current?.focus();
+      }, 100);
+    }
+  }, [isLoading, currentActCount]);
 
   const toggleHighlight = async (chatId) => {
     try {
@@ -780,7 +791,7 @@ const ChatBox = ({ playthroughId, currentInteraction, onClose, onActCountDecreas
           )}
           {isLoading && (
             <LoadingIndicator>
-              <MessageLabel>{localInteraction?.name || 'NPC'}가 입력중...</MessageLabel>
+              <MessageLabel>{localInteraction?.name || 'NPC'}(이)가 입력중...</MessageLabel>
               <LoadingDots>
                 <span></span>
                 <span></span>
@@ -793,6 +804,7 @@ const ChatBox = ({ playthroughId, currentInteraction, onClose, onActCountDecreas
         
         <InputArea onSubmit={handleSend}>
           <TextInput
+            ref={inputRef}
             type="text"
             value={input}
             onChange={e => setInput(e.target.value)}
@@ -802,7 +814,7 @@ const ChatBox = ({ playthroughId, currentInteraction, onClose, onActCountDecreas
           <SendButton type="submit" disabled={isLoading || !input.trim() || currentActCount <= 0}>
             전송
           </SendButton>
-          <QuestionCostText>질문 횟수 -1</QuestionCostText>
+          {/* <QuestionCostText>질문 횟수 -1</QuestionCostText> */}
         </InputArea>
       </ChatAreaContainer>
     </ChatBoxContainer>

@@ -345,7 +345,7 @@ const MessageTime = styled.span`
 
 const MessageContent = styled.div`
   color: ${props => props.$isUserMessage ? '#1c1c1c' : '#2c1810'};
-  font-size: 15px;
+  font-size: 20px;
   line-height: 1.5;
   white-space: pre-wrap;
   font-family: 'Crimson Text', serif;

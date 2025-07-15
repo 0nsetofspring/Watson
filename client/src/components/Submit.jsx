@@ -233,7 +233,7 @@ const Label = styled.label`
   margin-bottom: 12px;
   font-weight: 600;
   font-family: 'Cinzel', serif;
-  font-size: 14px;
+  font-size: 18px;
   color: #654321;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
   line-height: 1.4;
@@ -271,7 +271,7 @@ const Select = styled.select`
 
 const TextArea = styled.textarea`
   width: 100%;
-  min-height: 300px;
+  min-height: 150px;
   padding: 18px;
   border: 2px solid #8b4513;
   border-radius: 6px;
@@ -520,7 +520,8 @@ const Submit = ({ playthroughId, gameData, onClose, onSubmissionComplete }) => {
             </FieldSet>
             <FieldSet>
               <Legend>최종 추리</Legend>
-              <Label htmlFor="reasoning-text">수집한 단서들을 바탕으로, 당신의 최종 추리를 상세히 기술하십시오. (동기, 단서, 경위 등 상세히 작성 권장)</Label>
+              <Label htmlFor="reasoning-text">수집한 단서들을 바탕으로, 당신의 최종 추리를 상세히 기술하십시오.
+                <br />(동기, 단서, 경위 등 상세히 작성 권장)</Label>
               <TextArea id="reasoning-text" value={reasoningText} onChange={(e) => setReasoningText(e.target.value)} disabled={isLoading} />
             </FieldSet>
             <SubmitButton type="submit" disabled={isLoading}>
