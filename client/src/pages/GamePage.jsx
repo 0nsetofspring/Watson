@@ -8,6 +8,7 @@ import ChatBox from '../components/ChatBox';
 import ObjectInfo from '../components/ObjectInfo';
 import ChatLogModal from '../components/ChatLogModal';
 import MemoModal from '../components/MemoModal';
+import Submit from '../components/Submit';
 
 // 게임 배경 이미지 import
 import gameBackground from '../assets/images/game_background.png';
@@ -455,38 +456,29 @@ const GamePage = () => {
   const { playthroughId } = useParams();
   const navigate = useNavigate();
   const { token } = useAuth();
-  
+
   const [gameData, setGameData] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [currentBackground, setCurrentBackground] = useState(gameBackground);
   const [selectedElement, setSelectedElement] = useState(null);
-  
-  // 새로운 Room 기반 상태 관리
+
+  // Room, NPC, Object 상태
   const [rooms, setRooms] = useState([]);
   const [currentRoom, setCurrentRoom] = useState(null);
   const [interactiveObjects, setInteractiveObjects] = useState([]);
   const [isLoadingRoom, setIsLoadingRoom] = useState(false);
-  
-  // NPC 정보 관리를 위한 새로운 상태 추가
   const [npcs, setNpcs] = useState([]);
-  
-  // 채팅박스 상태 관리 (NPC 전용)
+
+  // 채팅박스, 오브젝트 정보, 모달 상태
   const [showChatBox, setShowChatBox] = useState(false);
   const [currentInteraction, setCurrentInteraction] = useState(null);
-  
-  // 객체 정보 상태 관리 (객체 전용)
   const [showObjectInfo, setShowObjectInfo] = useState(false);
   const [currentObject, setCurrentObject] = useState(null);
-  
-  // 채팅 로그 모달 상태 관리
   const [showChatLogModal, setShowChatLogModal] = useState(false);
-  
-  // 메모장 모달 상태 관리
   const [showMemoModal, setShowMemoModal] = useState(false);
-  
-  // 방 전환 애니메이션 상태
   const [isRoomTransitioning, setIsRoomTransitioning] = useState(false);
+  const [showSubmitModal, setShowSubmitModal] = useState(false);
 
   // Act 카운트 상태 및 애니메이션 상태 추가
   const [actCount, setActCount] = useState(30); // 기본값 예시
@@ -510,41 +502,22 @@ const GamePage = () => {
     const fetchGameData = async () => {
       try {
         setIsLoading(true);
-        
-        // 단일 API 호출로 모든 게임 데이터 가져오기
         const data = await getPlaythroughApi(playthroughId, token);
         setGameData(data);
-        
-        // API 응답에서 rooms 데이터 추출
         const roomsData = data.scenario?.rooms || [];
         setRooms(roomsData);
-        
-        // 모든 NPC 정보를 추출하여 저장
         const allNpcs = [];
         roomsData.forEach(room => {
-          if (room.npcs) {
-            allNpcs.push(...room.npcs);
-          }
+          if (room.npcs) allNpcs.push(...room.npcs);
         });
         setNpcs(allNpcs);
-        
-        // 첫 번째 방으로 초기 설정
         if (roomsData.length > 0) {
           const firstRoom = roomsData[0];
           setCurrentRoom(firstRoom);
-          
-          // 방 배경 이미지 설정
-          if (firstRoom.backgroundImageUrl) {
-            setCurrentBackground(firstRoom.backgroundImageUrl);
-          } else {
-            setCurrentBackground(gameBackground);
-          }
-          
-          // 첫 번째 방의 상호작용 객체 설정
+          setCurrentBackground(firstRoom.backgroundImageUrl || gameBackground);
           const visibleObjects = (firstRoom.interactiveObjects || []).filter(obj => obj.isVisible);
           setInteractiveObjects(visibleObjects);
         }
-        
       } catch (err) {
         setError(err.message);
         console.error('게임 정보를 가져오는 중 에러:', err);
@@ -552,10 +525,7 @@ const GamePage = () => {
         setIsLoading(false);
       }
     };
-
-    if (playthroughId && token) {
-      fetchGameData();
-    }
+    if (playthroughId && token) fetchGameData();
   }, [playthroughId, token]);
 
   // (가정된) 백엔드 API에서 actCount, actLimit을 받아오는 함수
@@ -675,30 +645,18 @@ const GamePage = () => {
   }, [alert.show, alert.isExiting]);
 
   // 방 전환 함수 (컴포넌트 내 다른 곳에서 사용)
+
   const switchRoom = async (room) => {
     try {
       setIsLoadingRoom(true);
       setIsRoomTransitioning(true);
-      
-      // 1. 페이드 아웃 (0.5초 대기)
       await new Promise(resolve => setTimeout(resolve, 500));
-      
-      // 2. 방 정보 및 배경 이미지 변경
       setCurrentRoom(room);
-      if (room.backgroundImageUrl) {
-        setCurrentBackground(room.backgroundImageUrl);
-      } else {
-        setCurrentBackground(gameBackground);
-      }
-      
-      // 3. 해당 방의 상호작용 객체 설정 (이미 로드된 데이터 사용)
+      setCurrentBackground(room.backgroundImageUrl || gameBackground);
       const visibleObjects = (room.interactiveObjects || []).filter(obj => obj.isVisible);
       setInteractiveObjects(visibleObjects);
-      
-      // 4. 짧은 대기 후 페이드 인 시작
       await new Promise(resolve => setTimeout(resolve, 100));
       setIsRoomTransitioning(false);
-      
     } catch (err) {
       console.error('방 전환 중 에러:', err);
       setIsRoomTransitioning(false);
@@ -707,80 +665,11 @@ const GamePage = () => {
     }
   };
 
-  // 객체 정보 업데이트 처리 (조사 완료 후 호출)
-  const handleInvestigationUpdate = async () => {
-    if (currentRoom && playthroughId && token) {
-      try {
-        console.log('객체 정보 업데이트 요청:', currentRoom.id);
-        const roomObjectsData = await getRoomObjectsApi(playthroughId, currentRoom.id, token);
-        console.log('업데이트된 객체 정보:', roomObjectsData.objects);
-        
-        // interactiveObjects 상태 업데이트
-        const visibleObjects = roomObjectsData.objects.filter(obj => obj.isVisible);
-        setInteractiveObjects(visibleObjects);
-        
-      } catch (error) {
-        console.error('객체 정보 업데이트 중 오류:', error);
-      }
-    }
   };
-
-  // 아이템 획득 처리
-  const handleItemAcquired = (itemData) => {
-    console.log('아이템 획득:', itemData);
-    // 아이템을 화면에서 제거
-    setInteractiveObjects(prev => prev.filter(obj => obj.id !== itemData.id));
-    // TODO: 인벤토리에 아이템 추가 API 호출
-  };
-
-  // 단서 추가 처리
-  const handleClueAdded = (clueData) => {
-    console.log('단서 추가:', clueData);
-    // TODO: 단서장에 단서 추가 API 호출
-  };
-
-  // 채팅박스 닫기
-  const handleCloseChatBox = () => {
-    setShowChatBox(false);
-    setCurrentInteraction(null);
-  };
-
-  // 객체 정보 닫기
-  const handleCloseObjectInfo = () => {
-    setShowObjectInfo(false);
-    setCurrentObject(null);
-  };
-
-  // 채팅 로그 모달 닫기
-  const handleCloseChatLogModal = () => {
-    setShowChatLogModal(false);
-  };
-
-  // 메모장 모달 닫기
-  const handleCloseMemoModal = () => {
-    setShowMemoModal(false);
-  };
-
-  // 뒤로 가기
-  const handleGoBack = () => {
-    navigate(-1);
-  };
-
-  // 홈으로 가기
-  const handleGoHome = () => {
-    navigate('/');
-  };
-
-  // 채팅 로그 열기
-  const handleOpenChatLog = () => {
-    console.log('채팅 로그 열기');
-    setShowChatLogModal(true);
-  };
-
-  // 메모장 열기
-  const handleOpenMemo = () => {
-    console.log('메모장 열기');
-    setShowMemoModal(true);
+  const handleCloseSubmitModal = () => setShowSubmitModal(false);
+  const handleSubmissionComplete = (report) => {
+    console.log('게임이 종료되었습니다.', report);
+    // 필요시 추가 후처리
   };
 
   // 조사 상태 초기화 및 관리
@@ -1005,23 +894,12 @@ const GamePage = () => {
 
   // 클릭 가능한 요소 상호작용 (수정)
   const handleElementClick = async (element) => {
-    console.log('요소 클릭:', element);
     setSelectedElement(element);
-    
-    // 요소 타입에 따른 처리
     switch (element.type) {
-      case 'npc':
-        // NPC와 대화 시작 (채팅창 표시)
-        console.log('NPC 클릭:', element);
+      case 'npc': {
         try {
           const npcData = JSON.parse(element.data || '{}');
-          console.log('NPC 데이터:', npcData);
-          
-          // 실제 NPC 정보를 npcs 배열에서 찾기
           const actualNpc = npcs.find(npc => npc.id === npcData.npcId);
-          console.log('실제 NPC 정보:', actualNpc);
-          
-          // NPC 정보를 포함한 상호작용 객체 생성
           const npcInteraction = {
             ...element,
             npcId: npcData.npcId,
@@ -1029,54 +907,36 @@ const GamePage = () => {
             npcImageUrl: actualNpc?.imageUrl || element.imageUrl,
             npcInfo: actualNpc
           };
-          
           setCurrentInteraction(npcInteraction);
           setShowChatBox(true);
         } catch (err) {
-          console.error('NPC 데이터 파싱 에러:', err);
           alert('NPC와 대화를 시작할 수 없습니다.');
         }
         break;
-      case 'door':
-        console.log('문 클릭:', element);
-        // 문 열기/방 이동
+      }
+      case 'door': {
         try {
           const data = JSON.parse(element.data || '{}');
-          console.log('문 데이터:', data);
-          
-          // 키가 필요한 문인지 확인
           if (data.requiresKey && data.requiredKeyName) {
-            // 키를 보유하고 있는지 확인 (현재는 간단히 localStorage 사용)
             const hasKey = localStorage.getItem(`hasKey_${data.requiredKeyName}`) === 'true';
             if (!hasKey) {
               alert(data.lockedMessage || `${data.requiredKeyName}가 필요합니다.`);
               return;
             }
           }
-          
-          // 방 이름으로 대상 방 찾기
           if (data.targetRoomName) {
-            console.log('대상 방 이름:', data.targetRoomName);
             const targetRoom = rooms.find(room => room.name === data.targetRoomName);
-            console.log('찾은 방:', targetRoom);
-            if (targetRoom) {
-              await switchRoom(targetRoom);
-            } else {
-              console.error('대상 방을 찾을 수 없음:', data.targetRoomName);
-              alert('해당 방을 찾을 수 없습니다.');
-            }
+            if (targetRoom) await switchRoom(targetRoom);
+            else alert('해당 방을 찾을 수 없습니다.');
           }
         } catch (err) {
-          console.error('방 이동 중 에러:', err);
           alert('방 이동 중 오류가 발생했습니다.');
         }
         break;
-      case 'key':
-        // 키 획득 처리
-        console.log('키 획득:', element);
+      }
+      case 'key': {
         const keyName = element.name;
         const hasKeyAlready = localStorage.getItem(`hasKey_${keyName}`) === 'true';
-        
         if (!hasKeyAlready) {
           localStorage.setItem(`hasKey_${keyName}`, 'true');
           handleItemAcquired(element);
@@ -1085,37 +945,17 @@ const GamePage = () => {
           alert('이미 보유하고 있는 키입니다.');
         }
         break;
+      }
       case 'book':
       case 'notepad':
       case 'evidence':
       case 'clue':
       case 'item':
-        // 조사 관련 객체는 바로 ObjectInfo 표시 (조사 시작은 ObjectInfo 내에서 처리)
-        // 해당 객체의 조사 상태 초기화 (없는 경우)
-        if (!investigationStates[element.id]) {
-          const investigationKey = `investigation_${element.id}`;
-          const storedData = JSON.parse(localStorage.getItem(investigationKey) || '{}');
-          
-          setInvestigationStates(prev => ({
-            ...prev,
-            [element.id]: {
-              isInvestigationActive: element.isInInspectation || false,
-              isCompleted: storedData.isComplete || false,
-              requiredQuestions: element.requiredQuestions || 3,
-              investigationStartCount: storedData.startCount || null,
-              objectName: element.name
-            }
-          }));
-        }
-        
-        // 전체 조사 상태 확인
-        fetchGlobalInvestigationStatus();
-        
         setCurrentObject(element);
         setShowObjectInfo(true);
         break;
       default:
-        console.log('알 수 없는 요소:', element);
+        break;
     }
   };
 
@@ -1126,7 +966,6 @@ const GamePage = () => {
       </GamePageContainer>
     );
   }
-
   if (error) {
     return (
       <GamePageContainer>
@@ -1146,31 +985,7 @@ const GamePage = () => {
 
       {/* 상단 네비게이션 바 */}
       <TopNavBar>
-        <TopNavBarLayout>
-          <NavButtonGroup>
-            <NavButton onClick={handleGoBack}>🎭 뒤로</NavButton>
-            <NavButton onClick={handleGoHome}>🏛️ 홈</NavButton>
-          </NavButtonGroup>
-
-          <CenteredTitle>
-            <GameTitle>
-              {currentRoom ? `${gameData?.scenarioTitle || '탐정 게임'} - ${currentRoom.name}` : gameData?.scenarioTitle || '탐정 게임'}
-            </GameTitle>
-          </CenteredTitle>
-
-          <div style={{ display: 'flex', alignItems: 'center' }}>
-            <NavButtonGroup>
-              <NavButton onClick={handleOpenChatLog}>📜 채팅 로그</NavButton>
-              <NavButton $primary onClick={handleOpenMemo}>🔍 메모장</NavButton>
-            </NavButtonGroup>
-            <ActCounterContainer $highlight={showActHighlight}>
-              {actCount} / {actLimit}
-              <ActDescription>가능한 총 질의응답 횟수</ActDescription>
-            </ActCounterContainer>
-          </div>
-        </TopNavBarLayout>
       </TopNavBar>
-
       {/* 메인 게임 화면 */}
       <GameScreen $backgroundImage={currentBackground} $fadeOut={isRoomTransitioning}>
         <InteractiveLayer $fadeOut={showChatBox || showObjectInfo || isRoomTransitioning}>
@@ -1218,7 +1033,6 @@ const GamePage = () => {
             ))
           )}
         </InteractiveLayer>
-
         {/* 오버레이 채팅 인터페이스 (NPC 전용) */}
         <ChatArea $show={showChatBox}>
           <ChatBox 
@@ -1229,7 +1043,6 @@ const GamePage = () => {
             currentActCount={actCount}
           />
         </ChatArea>
-
         {/* 오버레이 객체 정보 인터페이스 */}
         <ChatArea $show={showObjectInfo}>
           <ObjectInfo 
@@ -1248,7 +1061,6 @@ const GamePage = () => {
           />
         </ChatArea>
       </GameScreen>
-
       {/* 채팅 로그 모달 */}
       {showChatLogModal && (
         <ChatLogModal 
@@ -1257,7 +1069,6 @@ const GamePage = () => {
           onClose={handleCloseChatLogModal}
         />
       )}
-
       {/* 메모장 모달 */}
       {showMemoModal && (
         <MemoModal 
@@ -1265,6 +1076,15 @@ const GamePage = () => {
           token={token}
           gameData={gameData}
           onClose={handleCloseMemoModal}
+        />
+      )}
+      {/* 제출 모달 */}
+      {showSubmitModal && (
+        <Submit
+          playthroughId={playthroughId}
+          gameData={gameData}
+          onClose={handleCloseSubmitModal}
+          onSubmissionComplete={handleSubmissionComplete}
         />
       )}
     </GamePageContainer>
