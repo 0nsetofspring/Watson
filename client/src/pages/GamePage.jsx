@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { getPlaythroughApi } from '../api/game';
+import { getRoomObjectsApi, startInvestigationApi, completeInvestigationApi, getInvestigationStatusApi } from '../api/investigation';
 import styled from 'styled-components';
 import ChatBox from '../components/ChatBox';
 import ObjectInfo from '../components/ObjectInfo';
@@ -12,6 +13,121 @@ import Submit from '../components/Submit';
 // 게임 배경 이미지 import
 import gameBackground from '../assets/images/game_background.png';
 import streetBackground from '../assets/images/street_background.png';
+
+// 통합 알림 시스템 스타일 컴포넌트
+const AlertContainer = styled.div`
+  position: fixed;
+  top: 80px;
+  right: 20px;
+  background: ${props => {
+    switch (props.$type) {
+      case 'success': return 'linear-gradient(135deg, #4caf50 0%, #45a049 100%)';
+      case 'warning': return 'linear-gradient(135deg, #ff9800 0%, #f57c00 100%)';
+      case 'error': return 'linear-gradient(135deg, #f44336 0%, #d32f2f 100%)';
+      case 'info': return 'linear-gradient(135deg, #2196f3 0%, #1976d2 100%)';
+      default: return 'linear-gradient(135deg, #4caf50 0%, #45a049 100%)';
+    }
+  }};
+  color: white;
+  padding: 16px 24px;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  font-family: 'Cinzel', serif;
+  font-weight: 600;
+  font-size: 14px;
+  z-index: 99999;
+  animation: ${props => props.$isExiting ? 'slideOutRight' : 'slideInRight'} 0.5s ease-out;
+  max-width: 300px;
+  white-space: pre-line;
+  
+  @keyframes slideInRight {
+    from {
+      transform: translateX(100%);
+      opacity: 0;
+    }
+    to {
+      transform: translateX(0);
+      opacity: 1;
+    }
+  }
+  
+  @keyframes slideOutRight {
+    from {
+      transform: translateX(0);
+      opacity: 1;
+    }
+    to {
+      transform: translateX(100%);
+      opacity: 0;
+    }
+  }
+`;
+
+// Act 카운트 표시 컨테이너 스타일 추가
+const ActCounterContainer = styled.div`
+  min-width: 54px;
+  padding: 4px 10px 1px 10px;
+  margin: 0 0 0 16px;
+  background: linear-gradient(135deg, #fffbe6 0%, #ffe4a1 100%);
+  color: #8b4513;
+  font-family: 'Cinzel', serif;
+  font-size: 15px;
+  font-weight: bold;
+  border: 2px solid #daa520;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(218,165,32,0.12);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  letter-spacing: 1px;
+  position: relative;
+  transition: box-shadow 0.4s, border-color 0.4s, transform 0.4s;
+  z-index: 2;
+  ${props => props.$highlight && `
+    box-shadow: 0 0 16px 4px #ffd700, 0 0 32px 8px #fffbe6;
+    border-color: #ffb700;
+    transform: scale(1.12);
+    animation: actHighlightPulse 1.2s cubic-bezier(.4,0,.2,1) 0s 2 alternate;
+  `}
+  @keyframes actHighlightPulse {
+    0% { box-shadow: 0 0 8px 2px #ffd700; border-color: #daa520; }
+    100% { box-shadow: 0 0 24px 8px #ffd700; border-color: #ffb700; }
+  }
+`;
+
+// Act 카운트 설명 텍스트 스타일 추가
+const ActDescription = styled.div`
+  font-size: 10px;
+  color: #b8860b;
+  font-family: 'Crimson Text', serif;
+  font-weight: 400;
+  margin-top: 1px;
+  text-align: center;
+  opacity: 0.85;
+`;
+
+// 네비게이션 바 레이아웃 개선: 타이틀 중앙 고정
+const TopNavBarLayout = styled.div`
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: relative;
+`;
+
+const CenteredTitle = styled.div`
+  position: absolute;
+  left: 50%;
+  top: 0;
+  transform: translateX(-50%);
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  z-index: 10;
+`;
 
 // 게임 페이지 컨테이너 (전체 화면)
 const GamePageContainer = styled.div`
@@ -364,6 +480,23 @@ const GamePage = () => {
   const [isRoomTransitioning, setIsRoomTransitioning] = useState(false);
   const [showSubmitModal, setShowSubmitModal] = useState(false);
 
+  // Act 카운트 상태 및 애니메이션 상태 추가
+  const [actCount, setActCount] = useState(30); // 기본값 예시
+  const [actLimit, setActLimit] = useState(30); // 기본값 예시
+  const [showActHighlight, setShowActHighlight] = useState(false);
+
+  // 통합 알림 시스템 상태
+  const [alert, setAlert] = useState({
+    show: false,
+    type: 'info',
+    message: '',
+    isExiting: false
+  });
+
+  // 조사 관련 상태 관리 (GamePage에서 통합 관리)
+  const [investigationStates, setInvestigationStates] = useState({});
+  const [activeInvestigationObject, setActiveInvestigationObject] = useState(null);
+
   // 게임 데이터 로드
   useEffect(() => {
     const fetchGameData = async () => {
@@ -395,7 +528,6 @@ const GamePage = () => {
     if (playthroughId && token) fetchGameData();
   }, [playthroughId, token]);
 
-  // 방 전환 함수
   const switchRoom = async (room) => {
     try {
       setIsLoadingRoom(true);
@@ -415,30 +547,6 @@ const GamePage = () => {
     }
   };
 
-  // 뒤로 가기/홈
-  const handleGoBack = () => navigate(-1);
-  const handleGoHome = () => navigate('/');
-
-  // 채팅 로그/메모장
-  const handleOpenChatLog = () => setShowChatLogModal(true);
-  const handleOpenMemoModal = () => setShowMemoModal(true);
-  const handleCloseChatLogModal = () => setShowChatLogModal(false);
-  const handleCloseMemoModal = () => setShowMemoModal(false);
-
-  // 제출 모달 열기 (모든 NPC와 대화했는지 체크)
-  const handleOpenSubmitModal = () => {
-    if (!gameData || !gameData.chatLogs || !npcs.length) {
-      alert('게임 데이터가 완전히 로드되지 않았습니다.');
-      return;
-    }
-    const allNpcsConversed = npcs.every(npc =>
-      gameData.chatLogs.some(log => log.npcId === npc.id)
-    );
-    if (!allNpcsConversed) {
-      alert('모든 용의자와 한 번 이상 대화해야 합니다.');
-      return;
-    }
-    setShowSubmitModal(true);
   };
   const handleCloseSubmitModal = () => setShowSubmitModal(false);
   const handleSubmissionComplete = (report) => {
@@ -446,7 +554,199 @@ const GamePage = () => {
     // 필요시 추가 후처리
   };
 
-  // 클릭 가능한 요소 상호작용
+  // 조사 상태 초기화 및 관리
+  useEffect(() => {
+    if (interactiveObjects.length > 0 && playthroughId && token) {
+      initializeInvestigationStates();
+      fetchGlobalInvestigationStatus();
+    }
+  }, [interactiveObjects, playthroughId, token, actCount]);
+
+  // 조사 상태 초기화
+  const initializeInvestigationStates = () => {
+    const newStates = {};
+    interactiveObjects.forEach(obj => {
+      if (obj.type === 'clue' || obj.type === 'evidence' || obj.type === 'item') {
+        const investigationKey = `investigation_${obj.id}`;
+        const storedData = JSON.parse(localStorage.getItem(investigationKey) || '{}');
+        
+        newStates[obj.id] = {
+          isInvestigationActive: obj.isInInspectation || false,
+          isCompleted: storedData.isComplete || false,
+          requiredQuestions: obj.requiredQuestions || 3,
+          investigationStartCount: storedData.startCount || null,
+          objectName: obj.name
+        };
+      }
+    });
+    setInvestigationStates(newStates);
+  };
+
+  // 전체 조사 상태 확인
+  const fetchGlobalInvestigationStatus = async () => {
+    try {
+      const status = await getInvestigationStatusApi(playthroughId, token);
+      console.log('전체 조사 상태 확인 결과:', status);
+      setActiveInvestigationObject(status.activeObject);
+    } catch (error) {
+      console.error('조사 상태 확인 중 오류:', error);
+    }
+  };
+
+  // 조사 시작 처리
+  const handleStartInvestigation = async (objectData) => {
+    console.log('조사 시작 요청:', {
+      objectId: objectData.id,
+      investigationStates: investigationStates[objectData.id],
+      activeInvestigationObject,
+      currentActCount: actCount
+    });
+
+    const currentState = investigationStates[objectData.id];
+    
+    // 이미 완료된 조사는 바로 패널 열기
+    if (currentState?.isCompleted) {
+      return true; // 성공적으로 열기
+    }
+
+    // 현재 이 객체가 이미 조사 중인지 확인
+    if (currentState?.isInvestigationActive) {
+      return true; // 성공적으로 열기
+    }
+
+    // 다른 진행 중인 조사가 있는지 확인
+    if (activeInvestigationObject && activeInvestigationObject.id !== objectData.id) {
+      showAlert('warning', `이미 "${activeInvestigationObject.name}" 조사가 진행 중입니다. 한 번에 하나의 단서만 조사할 수 있습니다.`);
+      return false; // 열기 실패
+    }
+
+    // 새로운 조사 시작
+    try {
+      const result = await startInvestigationApi(objectData.id, playthroughId, token);
+      
+      // 조사 상태 업데이트
+      const newStartCount = result.alreadyStarted ? currentState?.investigationStartCount : actCount;
+      
+      setInvestigationStates(prev => ({
+        ...prev,
+        [objectData.id]: {
+          ...prev[objectData.id],
+          isInvestigationActive: true,
+          investigationStartCount: newStartCount
+        }
+      }));
+      
+      // localStorage에 저장
+      if (!result.alreadyStarted) {
+        const investigationKey = `investigation_${objectData.id}`;
+        const newInvestigationData = {
+          startCount: actCount,
+          isComplete: false,
+          objectName: objectData.name
+        };
+        localStorage.setItem(investigationKey, JSON.stringify(newInvestigationData));
+      }
+      
+      // 전체 조사 상태 다시 확인
+      await fetchGlobalInvestigationStatus();
+      
+      return true; // 성공적으로 열기
+      
+    } catch (error) {
+      console.error('조사 시작 중 오류:', error);
+      showAlert('error', error.message || '조사 시작에 실패했습니다.');
+      return false; // 열기 실패
+    }
+  };
+
+  // 조사 완료 처리
+  const handleCompleteInvestigation = async (objectData) => {
+    console.log('조사 완료 시도:', {
+      objectId: objectData.id,
+      investigationState: investigationStates[objectData.id],
+      currentActCount: actCount
+    });
+    
+    try {
+      const result = await completeInvestigationApi(objectData.id, playthroughId, token);
+      console.log('조사 완료 API 응답:', result);
+      
+      // 조사 상태 업데이트
+      setInvestigationStates(prev => {
+        const newState = {
+          ...prev,
+          [objectData.id]: {
+            ...prev[objectData.id],
+            isInvestigationActive: false,
+            isCompleted: true
+          }
+        };
+        console.log('조사 상태 업데이트:', {
+          이전: prev[objectData.id],
+          새로운상태: newState[objectData.id]
+        });
+        return newState;
+      });
+      
+      // localStorage에 완료 정보 저장
+      const investigationKey = `investigation_${objectData.id}`;
+      const currentState = investigationStates[objectData.id];
+      const updatedData = {
+        startCount: currentState?.investigationStartCount,
+        isComplete: true,
+        objectName: objectData.name
+      };
+      localStorage.setItem(investigationKey, JSON.stringify(updatedData));
+      console.log('localStorage 업데이트:', updatedData);
+      
+      // 전체 조사 상태 다시 확인
+      await fetchGlobalInvestigationStatus();
+      
+      // 객체 정보 업데이트
+      if (handleInvestigationUpdate) {
+        await handleInvestigationUpdate();
+      }
+      
+      // 조사 완료 알림 표시
+      showAlert('success', `🔍 "${objectData.name}" 조사 완료!\n상세 정보를 확인할 수 있습니다.`);
+      
+      return true;
+      
+    } catch (error) {
+      console.error('조사 완료 중 오류:', error);
+      showAlert('error', error.message || '조사 완료에 실패했습니다.');
+      return false;
+    }
+  };
+
+  // 조사 진행도 계산
+  const getInvestigationProgress = (objectId) => {
+    const state = investigationStates[objectId];
+    if (!state || state.investigationStartCount === null) return 0;
+    return state.investigationStartCount - actCount;
+  };
+
+  // 조사 완료 가능 여부 확인
+  const canCompleteInvestigation = (objectId) => {
+    const state = investigationStates[objectId];
+    if (!state) return false;
+    
+    const progress = getInvestigationProgress(objectId);
+    // 아직 완료되지 않았고 필요한 질문 수를 충족한 경우 (조사가 한 번이라도 시작된 경우)
+    return !state.isCompleted && progress >= state.requiredQuestions && state.investigationStartCount !== null;
+  };
+
+  // 상세 정보 접근 가능 여부 확인
+  const canAccessDetail = (objectId) => {
+    const state = investigationStates[objectId];
+    if (!state) return false;
+    
+    const progress = getInvestigationProgress(objectId);
+    // 조사가 완료되었거나, 필요한 질문 수를 충족한 경우 (조사 상태와 무관하게)
+    return state.isCompleted || progress >= state.requiredQuestions;
+  };
+
+  // 클릭 가능한 요소 상호작용 (수정)
   const handleElementClick = async (element) => {
     setSelectedElement(element);
     switch (element.type) {
@@ -513,16 +813,6 @@ const GamePage = () => {
     }
   };
 
-  // 채팅박스/오브젝트 정보 닫기
-  const handleCloseChatBox = () => { setShowChatBox(false); setCurrentInteraction(null); };
-  const handleCloseObjectInfo = () => { setShowObjectInfo(false); setCurrentObject(null); };
-  const handleItemAcquired = (itemData) => {
-    setInteractiveObjects(prev => prev.filter(obj => obj.id !== itemData.id));
-  };
-  const handleClueAdded = (clueData) => {
-    // TODO: 단서장에 단서 추가 API 호출
-  };
-
   if (isLoading) {
     return (
       <GamePageContainer>
@@ -540,20 +830,15 @@ const GamePage = () => {
 
   return (
     <GamePageContainer>
+      {/* 통합 알림 표시 */}
+      {alert.show && (
+        <AlertContainer $type={alert.type} $isExiting={alert.isExiting}>
+          {alert.message}
+        </AlertContainer>
+      )}
+
       {/* 상단 네비게이션 바 */}
       <TopNavBar>
-        <NavButtonGroup>
-          <NavButton onClick={handleGoBack}>🎭 뒤로</NavButton>
-          <NavButton onClick={handleGoHome}>🏛️ 홈</NavButton>
-        </NavButtonGroup>
-        <GameTitle>
-          {currentRoom ? `${gameData?.scenarioTitle || '탐정 게임'} - ${currentRoom.name}` : gameData?.scenarioTitle || '탐정 게임'}
-        </GameTitle>
-        <NavButtonGroup>
-          <NavButton $primary onClick={handleOpenSubmitModal}>🚨 범인 지목</NavButton>
-          <NavButton onClick={handleOpenChatLog}>📜 채팅 로그</NavButton>
-          <NavButton onClick={handleOpenMemoModal}>🔍 메모장</NavButton>
-        </NavButtonGroup>
       </TopNavBar>
       {/* 메인 게임 화면 */}
       <GameScreen $backgroundImage={currentBackground} $fadeOut={isRoomTransitioning}>
@@ -601,6 +886,8 @@ const GamePage = () => {
             playthroughId={playthroughId}
             currentInteraction={currentInteraction}
             onClose={handleCloseChatBox}
+            onActCountDecrease={handleActCountDecrease}
+            currentActCount={actCount}
           />
         </ChatArea>
         {/* 오버레이 객체 정보 인터페이스 */}
@@ -610,6 +897,14 @@ const GamePage = () => {
             onClose={handleCloseObjectInfo}
             onItemAcquired={handleItemAcquired}
             onClueAdded={handleClueAdded}
+            currentActCount={actCount}
+            playthroughId={playthroughId}
+            investigationState={currentObject ? investigationStates[currentObject.id] : null}
+            onStartInvestigation={() => handleStartInvestigation(currentObject)}
+            onCompleteInvestigation={() => handleCompleteInvestigation(currentObject)}
+            canCompleteInvestigation={currentObject ? canCompleteInvestigation(currentObject.id) : false}
+            canAccessDetail={currentObject ? canAccessDetail(currentObject.id) : false}
+            investigationProgress={currentObject ? getInvestigationProgress(currentObject.id) : 0}
           />
         </ChatArea>
       </GameScreen>
