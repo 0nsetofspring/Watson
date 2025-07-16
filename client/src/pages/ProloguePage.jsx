@@ -591,6 +591,34 @@ const ProloguePage = () => {
     }
   };
 
+  // 스크롤이 필요한지 확인하는 함수
+  const checkScrollNeeded = () => {
+    const el = prologueTextRef.current;
+    if (!el) return;
+    
+    // 스크롤이 필요하지 않은 경우 (컨텐츠 높이가 컨테이너 높이 이하)
+    if (el.scrollHeight <= el.clientHeight + 2) {
+      setIsScrolledToBottom(true);
+    } else {
+      // 스크롤이 필요한 경우, 현재 위치 확인
+      if (el.scrollTop + el.clientHeight >= el.scrollHeight - 2) {
+        setIsScrolledToBottom(true);
+      }
+    }
+  };
+
+  // 프롤로그가 표시되었을 때 스크롤 필요성 확인
+  useEffect(() => {
+    if (animationStage === 'prologueVisible') {
+      // 약간의 지연을 두어 DOM이 완전히 렌더링된 후 확인
+      const timer = setTimeout(() => {
+        checkScrollNeeded();
+      }, 100);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [animationStage]);
+
   if (isLoading) {
     return (
       <ProloguePageContainer>
