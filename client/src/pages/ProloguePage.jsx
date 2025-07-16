@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { getPlaythroughApi } from '../api/game';
@@ -315,6 +315,26 @@ const PrologueTextContainer = styled.div`
     font-size: 0.9rem;
     padding: 10px;
   }
+
+    /* 스크롤바 스타일링 */
+  &::-webkit-scrollbar {
+    width: 10px;
+  }
+  
+  &::-webkit-scrollbar-track {
+    background: rgba(139, 69, 19, 0.2);
+    border-radius: 4px;
+  }
+  
+  &::-webkit-scrollbar-thumb {
+    background: linear-gradient(135deg, #8b4513, #654321);
+    border-radius: 4px;
+    border: 1px solid #daa520;
+  }
+  
+  &::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(135deg, #654321, #8b4513);
+  }
 `;
 
 // 프롤로그 제목 스타일
@@ -352,23 +372,24 @@ const PrologueContent = styled.div`
 
 // 완료 버튼 스타일 (PaperPlateContainer 내부의 bottom-center)
 const FinishButton = styled.button`
-  background-color: #8b6f47;
+  background-color: ${({ disabled }) => (disabled ? '#bdbdbd' : '#8b6f47')};
   color: white;
   border: none;
   padding: 12px 24px;
   font-size: 1rem;
   font-weight: bold;
-  cursor: pointer;
+  cursor: ${({ disabled }) => (disabled ? 'not-allowed' : 'pointer')};
   border-radius: 5px;
   transition: background-color 0.3s;
-  margin-bottom: 5%; /* 하단 여백 */
+  margin-bottom: 5%;
+  opacity: ${({ disabled }) => (disabled ? 0.7 : 1)};
   
   &:hover {
-    background-color: #6d5535;
+    background-color: ${({ disabled }) => (disabled ? '#bdbdbd' : '#6d5535')};
   }
   
   &:active {
-    transform: scale(0.95);
+    transform: ${({ disabled }) => (disabled ? 'none' : 'scale(0.95)')};
   }
   
   @media (max-width: 768px) {
@@ -475,6 +496,8 @@ const ProloguePage = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [animationStage, setAnimationStage] = useState('initial'); // 'initial', 'ruleBook', 'ruleBookFadeOut', 'titleVisible', 'titleFadeOut', 'prologueStart', 'prologueVisible', 'prologueEnd', 'expansion', 'gameReady'
+  const [isScrolledToBottom, setIsScrolledToBottom] = useState(false);
+  const prologueTextRef = useRef(null);
 
   useEffect(() => {
     const fetchGameData = async () => {
@@ -559,6 +582,15 @@ const ProloguePage = () => {
     }
   }, [animationStage, navigate, playthroughId]);
 
+  const handleScroll = () => {
+    const el = prologueTextRef.current;
+    if (!el) return;
+    // 스크롤이 맨 아래에 도달했는지 확인
+    if (el.scrollTop + el.clientHeight >= el.scrollHeight - 2) {
+      setIsScrolledToBottom(true);
+    }
+  };
+
   if (isLoading) {
     return (
       <ProloguePageContainer>
@@ -612,7 +644,10 @@ const ProloguePage = () => {
             <PaperPlateContainer
               $stage={animationStage === 'prologueEnd' ? 'slideDown' : 'slideUp'}
             >
-              <PrologueTextContainer>
+              <PrologueTextContainer
+                ref={prologueTextRef}
+                onScroll={handleScroll}
+              >
                 {parsedPrologue.title && (
                   <PrologueTitle>{parsedPrologue.title}</PrologueTitle>
                 )}
@@ -633,10 +668,18 @@ const ProloguePage = () => {
                 )}
               </PrologueTextContainer>
               
-              {animationStage === 'prologueVisible' && (
-                <FinishButton onClick={handleFinishPrologue}>
+              {(animationStage === 'prologueVisible') && (
+                <FinishButton
+                  onClick={handleFinishPrologue}
+                  disabled={!isScrolledToBottom}
+                >
                   읽기 완료
                 </FinishButton>
+              )}
+              {(animationStage === 'prologueVisible') && !isScrolledToBottom && (
+                <div style={{ color: '#bdbdbd', fontSize: '0.95rem', marginTop: '8px' }}>
+                  아래까지 모두 읽어야 버튼이 활성화됩니다.
+                </div>
               )}
             </PaperPlateContainer>
           )}
