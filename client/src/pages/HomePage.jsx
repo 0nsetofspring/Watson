@@ -282,11 +282,11 @@ const ArticleText = styled.div`
   padding-left: ${(props) => (props.$indent ? '2rem' : '0')};
   h4 {
     margin: 0 0 5px 0;
-    font-size: 18px;
+    font-size: 22px;
   }
   p {
     margin: 0;
-    font-size: 14px;
+    font-size: 18px;
   }
 `;
 
@@ -316,12 +316,17 @@ const StyledButton = styled.button`
   background-color: #584d43ff;
   color: #edebe8;
   border: none;
-  padding: 10px 20px;
+  padding: 40px 20px;
   margin: 5px;
   height: 40px;
-  font-size: 16px;
+  width: 100%;
+  font-size: 19px;
   cursor: pointer;
   transition: background-color 0.3s;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 
   &:hover {
     background-color: #41382fff;
@@ -424,7 +429,7 @@ const HomePage = () => {
                   <Link to="/game/continue"><StyledButton>이어하기</StyledButton></Link>
                 </ArticleImagePlaceholder>
               </ArticleRow>
-              <ArticleRow>
+              {/* <ArticleRow>
                 <ArticleText>
                   <h4>탐정 정보 교류</h4>
                   <p>다른 탐정들의 활약상을 보거나, 자네의 추리를 공유할 수 있는 곳이지.</p>
@@ -432,8 +437,8 @@ const HomePage = () => {
                 <ArticleImagePlaceholder>
                   <Link to="/community"><StyledButton>커뮤니티</StyledButton></Link>
                 </ArticleImagePlaceholder>
-              </ArticleRow>
-              <ArticleRow $reverse>
+              </ArticleRow> */}
+              <ArticleRow $indent>
                 <ArticleText>
                   <h4>사무소 퇴근</h4>
                   <p>오늘 업무는 여기까지인가? 언제든 다시 돌아오게.</p>

@@ -25,6 +25,8 @@ const ScenarioButton = styled.button`
 `;
 const BackButton = styled.button`
   margin-top: 20px;
+  background-color: #584d43ff;
+  color: #edebe8;
 `;
 
 
