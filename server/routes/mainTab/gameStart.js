@@ -237,4 +237,45 @@ router.post('/:playthroughId/conclude', isLoggedIn, async (req, res) => {
   }
 });
 
+/**
+ * @description PUT /api/playthroughs/:playthroughId/decrease-questions - 데모용: remainingQuestions 감소
+ */
+router.put('/:playthroughId/decrease-questions', isLoggedIn, async (req, res) => {
+  const { playthroughId } = req.params;
+  const { amount = 1 } = req.body; // 감소시킬 양, 기본값 1
+  const userId = req.user.id;
+
+  try {
+    // 권한 확인: 해당 플레이스루가 현재 사용자의 것인지 확인
+    const playthrough = await prisma.playthrough.findFirst({
+      where: {
+        id: Number(playthroughId),
+        userId: userId,
+      },
+    });
+
+    if (!playthrough) {
+      return res.status(404).json({ error: '플레이스루를 찾을 수 없거나 권한이 없습니다.' });
+    }
+
+    // remainingQuestions 감소 (0 미만으로 내려가지 않도록)
+    const newRemainingQuestions = Math.max(0, playthrough.remainingQuestions - amount);
+
+    const updatedPlaythrough = await prisma.playthrough.update({
+      where: { id: Number(playthroughId) },
+      data: { remainingQuestions: newRemainingQuestions },
+    });
+
+    res.status(200).json({
+      message: `질문 횟수가 ${amount}만큼 감소했습니다.`,
+      previousRemainingQuestions: playthrough.remainingQuestions,
+      currentRemainingQuestions: updatedPlaythrough.remainingQuestions,
+    });
+
+  } catch (error) {
+    console.error('질문 횟수 감소 중 오류:', error);
+    res.status(500).json({ error: '질문 횟수 감소 중 서버 오류가 발생했습니다.' });
+  }
+});
+
 module.exports = router;

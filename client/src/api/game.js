@@ -153,3 +153,27 @@ export const concludePlaythroughApi = async (playthroughId, culpritName, reasoni
   }
   return data;
 };
+
+/**
+ * @description 데모용: 질문 횟수 감소 API
+ * @param {number} playthroughId - 플레이스루 ID
+ * @param {number} amount - 감소시킬 양
+ * @param {string} token - 인증 토큰
+ * @returns {Promise<object>} - API 응답
+ */
+export const decreaseQuestionsApi = async (playthroughId, amount, token) => {
+  const response = await fetch(`${API_BASE_URL}/api/playthroughs/${playthroughId}/decrease-questions`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`,
+    },
+    body: JSON.stringify({ amount }),
+  });
+
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data.error || '질문 횟수 감소에 실패했습니다.');
+  }
+  return data;
+};

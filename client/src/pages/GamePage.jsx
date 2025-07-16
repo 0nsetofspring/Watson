@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { getPlaythroughApi } from '../api/game';
+import { getPlaythroughApi, decreaseQuestionsApi } from '../api/game';
 import { getRoomObjectsApi, startInvestigationApi, completeInvestigationApi, getInvestigationStatusApi } from '../api/investigation';
 import styled from 'styled-components';
 import ChatBox from '../components/ChatBox';
@@ -850,6 +850,25 @@ const GamePage = () => {
     setShowSubmitModal(true);
   };
 
+  // 데모용: 질문 횟수 7 감소 함수
+  const handleDemoDecrease = async () => {
+    try {
+      console.log('🎯 데모: 질문 횟수 7 감소 시작');
+      const result = await decreaseQuestionsApi(playthroughId, 7, token);
+      console.log('🎯 데모: API 응답:', result);
+      
+      // 로컬 상태 즉시 업데이트
+      setActCount(result.currentRemainingQuestions);
+      
+      // 성공 알림 표시
+      showAlert('info', `🎯 데모: 질문 횟수 ${result.previousRemainingQuestions} → ${result.currentRemainingQuestions}`);
+      
+    } catch (error) {
+      console.error('🎯 데모: 질문 횟수 감소 중 오류:', error);
+      showAlert('error', `데모 실행 실패: ${error.message}`);
+    }
+  };
+
   // 조사 상태 초기화 및 관리
   useEffect(() => {
     if (interactiveObjects.length > 0 && playthroughId && token) {
@@ -1230,6 +1249,19 @@ const GamePage = () => {
             <NavButtonGroup>
               <NavButton onClick={handleOpenChatLog}>📜 채팅 로그</NavButton>
               <NavButton onClick={handleOpenMemo}>🔍 메모장</NavButton>
+              <NavButton 
+                onClick={handleDemoDecrease}
+                style={{ 
+                  background: 'linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%)', 
+                  color: 'white', 
+                  border: '2px solid #6a1b9a',
+                  fontWeight: 'bold',
+                  textShadow: '0 1px 2px rgba(0, 0, 0, 0.8)',
+                  fontSize: '13px'
+                }}
+              >
+                🎯 데모: -7
+              </NavButton>
               <NavButton 
                 $primary 
                 onClick={handleSubmitReport} 
