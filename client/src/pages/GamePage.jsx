@@ -631,89 +631,74 @@ const GamePage = () => {
     }
   }, [actCount, baseBackgroundUrl]);
 
-  // 실제 API에서 행동력 업데이트 후 상태 반영
-  const handleActCountDecrease = () => {
+  // 실제 API에서 행동력 업데이트 후 상태 반영 (서버 기반으로 단순화)
+  const handleActCountDecrease = async () => {
     console.log('GamePage: handleActCountDecrease 함수 시작, 현재 actCount:', actCount);
     const newCount = Math.max(0, actCount - 1);
     setActCount(newCount);
     
-    console.log('🔥 행동력 감소:', { 이전: actCount, 현재: newCount, 상태업데이트됨: true });
-    console.log('🌅 배경 전환 체크:', { baseBackgroundUrl, currentBackground, newCount });
-    console.log('🔍 현재 조사 상태들:', investigationStates);
-    console.log('🎯 활성 조사 객체:', activeInvestigationObject);
+    console.log('🔥 행동력 감소:', { 이전: actCount, 현재: newCount });
     
-    // 현재 진행 중인 조사가 있는지 확인하고 알림 표시
-    let activeInvestigation = null;
-    
-    // 우선 activeInvestigationObject가 있는지 확인
+    // 활성 조사 객체가 있는지 확인하고 즉시 로컬 상태 업데이트
     if (activeInvestigationObject && activeInvestigationObject.id) {
-      const state = investigationStates[activeInvestigationObject.id];
-      
-      // 실제 객체의 현재 상태도 확인 (현재 방에 있는 경우만)
-      const actualObject = interactiveObjects.find(obj => obj.id == activeInvestigationObject.id);
-      const isActuallyInvestigating = actualObject ? actualObject.isInInspectation : true; // 다른 방에 있는 경우 true로 가정
-      
-      if (state && state.investigationStartCount !== null && !state.isCompleted && isActuallyInvestigating) {
-        const progress = state.investigationStartCount - newCount;
-        console.log(`🎯 활성 조사 진행 상황 업데이트 - ${state.objectName}: ${progress}/${state.requiredQuestions} (현재방: ${!!actualObject}, 서버상태: ${isActuallyInvestigating})`);
-        
-        // 진행도가 음수가 되지 않도록 확인
-        if (progress >= 0) {
-          activeInvestigation = {
-            name: state.objectName,
-            progress: progress,
-            required: state.requiredQuestions,
-            remaining: Math.max(0, state.requiredQuestions - progress)
-          };
-        }
-      } else if (state && !isActuallyInvestigating && actualObject) {
-        // activeInvestigationObject가 있지만 실제로는 조사가 완료된 경우
-        console.log(`⚠️ activeInvestigationObject 상태 불일치 - ${state.objectName}: 활성으로 표시되었지만 실제로는 비활성`);
-      }
-    }
-    
-    // activeInvestigationObject가 없는 경우에만 다른 진행 중인 조사 찾기
-    if (!activeInvestigation) {
-      Object.keys(investigationStates).forEach(objectId => {
-        const state = investigationStates[objectId];
-        
-        // 실제 객체의 현재 상태도 확인
-        const actualObject = interactiveObjects.find(obj => obj.id == objectId);
-        const isActuallyInvestigating = actualObject && actualObject.isInInspectation;
-        
-        // 클라이언트 상태와 서버 상태 모두 확인
-        if (state.investigationStartCount !== null && 
-            !state.isCompleted && 
-            isActuallyInvestigating) {
-          const progress = state.investigationStartCount - newCount;
-          console.log(`🔍 조사 진행 상황 확인 - ${state.objectName}: ${progress}/${state.requiredQuestions} (서버 상태: ${isActuallyInvestigating})`);
-          
-          // 진행도가 음수가 되지 않고, 아직 activeInvestigation이 없는 경우만
-          if (progress >= 0 && !activeInvestigation) {
-            activeInvestigation = {
-              name: state.objectName,
-              progress: progress,
-              required: state.requiredQuestions,
-              remaining: Math.max(0, state.requiredQuestions - progress)
+      // 즉시 로컬 상태 업데이트 (UI 반응성 향상)
+      setInteractiveObjects(prev => 
+        prev.map(obj => {
+          if (obj.id === activeInvestigationObject.id) {
+            const currentRemaining = obj.remainingQuestions || obj.requiredQuestions || 3;
+            const newRemaining = Math.max(0, currentRemaining - 1);
+            return { 
+              ...obj, 
+              remainingQuestions: newRemaining,
+              // remainingQuestions가 0이 되면 조사 완료 가능
+              canComplete: newRemaining <= 0
             };
           }
-        } else if (state.investigationStartCount !== null && !state.isCompleted && !isActuallyInvestigating) {
-          // 서버 상태와 클라이언트 상태가 불일치하는 경우 로그
-          console.log(`⚠️ 상태 불일치 감지 - ${state.objectName}: 클라이언트(진행중) vs 서버(${isActuallyInvestigating ? '진행중' : '완료/비활성'})`);
+          return obj;
+        })
+      );
+      
+      // 조사 상태도 즉시 업데이트
+      setInvestigationStates(prev => ({
+        ...prev,
+        [activeInvestigationObject.id]: {
+          ...prev[activeInvestigationObject.id],
+          remainingQuestions: Math.max(0, (prev[activeInvestigationObject.id]?.remainingQuestions || 3) - 1),
+          canComplete: Math.max(0, (prev[activeInvestigationObject.id]?.remainingQuestions || 3) - 1) <= 0
         }
-      });
-    }
-    
-    // 진행 중인 조사에 대한 알림 표시
-    if (activeInvestigation) {
-      if (activeInvestigation.remaining > 0) {
-        showAlert('info', `🔍 "${activeInvestigation.name}" 조사 진행: ${activeInvestigation.progress}/${activeInvestigation.required}\n완료까지 ${activeInvestigation.remaining}개 질문 남음`);
-      } else {
-        showAlert('success', `🎉 "${activeInvestigation.name}" 조사 완료 가능!\n조사 완료 버튼을 클릭하세요.`);
+      }));
+      
+      // 서버에서 최신 조사 상태를 다시 가져와서 정확한 정보로 알림 표시
+      try {
+        const latestStatus = await getInvestigationStatusApi(playthroughId, token);
+        if (latestStatus.hasActiveInvestigation && latestStatus.activeObject) {
+          const latestObject = latestStatus.activeObject;
+          const remaining = latestObject.remainingQuestions || 0;
+          const required = latestObject.requiredQuestions || 3;
+          const progress = required - remaining;
+          
+          if (remaining > 0) {
+            showAlert('info', `🔍 "${latestObject.name}" 조사 진행: ${progress}/${required}\n완료까지 ${remaining}개 질문 남음`);
+          } else {
+            showAlert('success', `🎉 "${latestObject.name}" 조사 완료 가능!\n조사 완료 버튼을 클릭하세요.`);
+          }
+        } else {
+          // 활성 조사가 더 이상 없는 경우 (완료되었거나 취소된 경우)
+          showAlert('info', `💬 질의응답 완료!\n남은 질문 횟수: ${newCount}`);
+        }
+      } catch (statusError) {
+        console.error('조사 상태 확인 중 오류:', statusError);
+        // 상태 확인 실패 시 일반적인 알림
+        showAlert('info', `💬 질의응답 완료!\n남은 질문 횟수: ${newCount}`);
       }
     } else {
       // 진행 중인 조사가 없는 경우 일반적인 알림
       showAlert('info', `💬 질의응답 완료!\n남은 질문 횟수: ${newCount}`);
+    }
+    
+    // 객체 정보 업데이트 (서버에서 최신 remainingQuestions 가져오기)
+    if (handleInvestigationUpdate) {
+      await handleInvestigationUpdate();
     }
   };
 
@@ -873,61 +858,33 @@ const GamePage = () => {
     }
   }, [interactiveObjects, playthroughId, token, actCount]);
 
-  // 조사 상태 초기화 (방 간 전환 시에도 기존 상태 보존)
+  // 조사 상태 초기화 (서버 데이터 기반으로 단순화)
   const initializeInvestigationStates = () => {
-    console.log('🔄 조사 상태 초기화 시작');
+    console.log('🔄 조사 상태 초기화 시작 (서버 기반)');
     setInvestigationStates(prevStates => {
-      console.log('📁 이전 조사 상태들:', prevStates);
-      const newStates = { ...prevStates }; // 기존 상태를 보존
+      const newStates = { ...prevStates };
       
-      // 현재 방의 객체들에 대한 상태 업데이트
+      // 현재 방의 객체들에 대한 상태만 관리
       interactiveObjects.forEach(obj => {
         if (obj.type === 'clue' || obj.type === 'evidence' || obj.type === 'item') {
-          const investigationKey = `investigation_${obj.id}`;
-          const storedData = JSON.parse(localStorage.getItem(investigationKey) || '{}');
-          
-          // 서버 상태와 localStorage 상태를 동기화
-          // 조사 완료 여부는 localStorage 기준, 단 서버에서 다시 진행 중이면 미완료로 처리
-          const isCompleted = storedData.isComplete && !obj.isInInspectation;
+          // 새로운 API 구조에 맞게 상태 확인
+          const isCompleted = obj.isCompleted || (!obj.isInInspectation && obj.remainingQuestions !== null && obj.remainingQuestions !== obj.requiredQuestions);
+          const isInvestigationComplete = obj.isInInspectation && (obj.remainingQuestions || 0) <= 0;
           
           newStates[obj.id] = {
             isInvestigationActive: obj.isInInspectation || false,
-            isCompleted: isCompleted,
+            isCompleted: isCompleted || isInvestigationComplete,
             requiredQuestions: obj.requiredQuestions || 3,
-            investigationStartCount: storedData.startCount || null,
-            objectName: obj.name
+            remainingQuestions: obj.remainingQuestions,
+            objectName: obj.name,
+            canComplete: isInvestigationComplete
           };
-          
-          // 상태 불일치 감지 및 로그 (완료된 조사가 다시 진행 중인 경우)
-          if (storedData.isComplete && obj.isInInspectation) {
-            console.log(`⚠️ 상태 불일치 감지 - ${obj.name}: localStorage(완료) vs 서버(진행중) -> 진행중으로 재설정`);
-          }
         }
       });
       
-      // localStorage에서 모든 조사 상태를 로드하여 보존
-      const allKeys = Object.keys(localStorage);
-      allKeys.forEach(key => {
-        if (key.startsWith('investigation_')) {
-          const objectId = key.replace('investigation_', '');
-          const storedData = JSON.parse(localStorage.getItem(key) || '{}');
-          
-          // 이미 newStates에 있는 경우 건너뛰기 (현재 방의 객체가 우선)
-          if (!newStates[objectId] && storedData.objectName) {
-            newStates[objectId] = {
-              isInvestigationActive: false, // 현재 방에 없는 객체는 비활성화
-              isCompleted: storedData.isComplete || false,
-              requiredQuestions: 3, // 기본값 사용
-              investigationStartCount: storedData.startCount || null,
-              objectName: storedData.objectName
-            };
-          }
-                 }
-       });
-       
-       console.log('✅ 최종 조사 상태들:', newStates);
-       return newStates;
-     });
+      console.log('✅ 최종 조사 상태들 (서버 기반):', newStates);
+      return newStates;
+    });
   };
 
   // 전체 조사 상태 확인
@@ -972,27 +929,32 @@ const GamePage = () => {
     try {
       const result = await startInvestigationApi(objectData.id, playthroughId, token);
       
-      // 조사 상태 업데이트
-      const newStartCount = result.alreadyStarted ? currentState?.investigationStartCount : actCount;
+      // 즉시 로컬 상태 업데이트 (UI 반응성 향상)
+      setInteractiveObjects(prev => 
+        prev.map(obj => 
+          obj.id === objectData.id 
+            ? { ...obj, isInInspectation: true, remainingQuestions: obj.requiredQuestions || 3 }
+            : obj
+        )
+      );
       
+      // 조사 상태도 즉시 업데이트
       setInvestigationStates(prev => ({
         ...prev,
         [objectData.id]: {
           ...prev[objectData.id],
           isInvestigationActive: true,
-          investigationStartCount: newStartCount
+          isCompleted: false,
+          requiredQuestions: objectData.requiredQuestions || 3,
+          remainingQuestions: objectData.requiredQuestions || 3,
+          objectName: objectData.name,
+          canComplete: false
         }
       }));
       
-      // localStorage에 저장
-      if (!result.alreadyStarted) {
-        const investigationKey = `investigation_${objectData.id}`;
-        const newInvestigationData = {
-          startCount: actCount,
-          isComplete: false,
-          objectName: objectData.name
-        };
-        localStorage.setItem(investigationKey, JSON.stringify(newInvestigationData));
+      // 객체 정보 업데이트
+      if (handleInvestigationUpdate) {
+        await handleInvestigationUpdate();
       }
       
       // 전체 조사 상태 다시 확인
@@ -1019,33 +981,28 @@ const GamePage = () => {
       const result = await completeInvestigationApi(objectData.id, playthroughId, token);
       console.log('조사 완료 API 응답:', result);
       
-      // 조사 상태 업데이트
-      setInvestigationStates(prev => {
-        const newState = {
-          ...prev,
-          [objectData.id]: {
-            ...prev[objectData.id],
-            isInvestigationActive: false,
-            isCompleted: true
-          }
-        };
-        console.log('조사 상태 업데이트:', {
-          이전: prev[objectData.id],
-          새로운상태: newState[objectData.id]
-        });
-        return newState;
-      });
+      // 즉시 로컬 상태 업데이트 (UI 반응성 향상)
+      setInteractiveObjects(prev => 
+        prev.map(obj => 
+          obj.id === objectData.id 
+            ? { ...obj, isInInspectation: false, remainingQuestions: 0 }
+            : obj
+        )
+      );
       
-      // localStorage에 완료 정보 저장
-      const investigationKey = `investigation_${objectData.id}`;
-      const currentState = investigationStates[objectData.id];
-      const updatedData = {
-        startCount: currentState?.investigationStartCount,
-        isComplete: true,
-        objectName: objectData.name
-      };
-      localStorage.setItem(investigationKey, JSON.stringify(updatedData));
-      console.log('localStorage 업데이트:', updatedData);
+      // 조사 상태도 즉시 업데이트
+      setInvestigationStates(prev => ({
+        ...prev,
+        [objectData.id]: {
+          ...prev[objectData.id],
+          isInvestigationActive: false,
+          isCompleted: true,
+          requiredQuestions: objectData.requiredQuestions || 3,
+          remainingQuestions: 0,
+          objectName: objectData.name,
+          canComplete: false
+        }
+      }));
       
       // 완료된 조사가 현재 활성 조사인 경우 명시적으로 정리
       if (activeInvestigationObject && activeInvestigationObject.id === objectData.id) {
@@ -1073,31 +1030,46 @@ const GamePage = () => {
     }
   };
 
-  // 조사 진행도 계산
+  // 조사 진행도 계산 (remainingQuestions 기반)
   const getInvestigationProgress = (objectId) => {
-    const state = investigationStates[objectId];
-    if (!state || state.investigationStartCount === null) return 0;
-    return state.investigationStartCount - actCount;
+    const actualObject = interactiveObjects.find(obj => obj.id == objectId);
+    if (!actualObject || !actualObject.requiredQuestions) return 0;
+    
+    const remaining = actualObject.remainingQuestions || actualObject.requiredQuestions;
+    return actualObject.requiredQuestions - remaining;
   };
 
-  // 조사 완료 가능 여부 확인
+  // 조사 완료 가능 여부 확인 (remainingQuestions 기반)
   const canCompleteInvestigation = (objectId) => {
-    const state = investigationStates[objectId];
-    if (!state) return false;
+    const actualObject = interactiveObjects.find(obj => obj.id == objectId);
+    if (!actualObject) return false;
     
-    const progress = getInvestigationProgress(objectId);
-    // 아직 완료되지 않았고 필요한 질문 수를 충족한 경우 (조사가 한 번이라도 시작된 경우)
-    return !state.isCompleted && progress >= state.requiredQuestions && state.investigationStartCount !== null;
+    // 조사 중이고 remainingQuestions가 0 이하인 경우 완료 가능
+    // 또는 조사가 완료되었지만 아직 isInInspectation이 true인 경우
+    return actualObject.isInInspectation && (actualObject.remainingQuestions || 0) <= 0;
   };
 
-  // 상세 정보 접근 가능 여부 확인
+  // 상세 정보 접근 가능 여부 확인 (remainingQuestions 기반)
   const canAccessDetail = (objectId) => {
-    const state = investigationStates[objectId];
-    if (!state) return false;
+    const actualObject = interactiveObjects.find(obj => obj.id == objectId);
+    if (!actualObject) return false;
     
-    const progress = getInvestigationProgress(objectId);
-    // 조사가 완료되었거나, 필요한 질문 수를 충족한 경우 (조사 상태와 무관하게)
-    return state.isCompleted || progress >= state.requiredQuestions;
+    // 조사가 완료되었는지 확인
+    const isCompleted = actualObject.isCompleted || false;
+    
+    // 조사가 한 번이라도 시작되었는지 확인 (remainingQuestions가 null이 아니고 초기값과 다른 경우)
+    const hasBeenInvestigated = actualObject.remainingQuestions !== null && 
+                               actualObject.remainingQuestions !== actualObject.requiredQuestions;
+    
+    // 조사가 진행 중이 아니면서 한 번이라도 조사된 경우
+    const hasCompletedInvestigation = !actualObject.isInInspectation && hasBeenInvestigated;
+    
+    // 조사가 진행 중이고 remainingQuestions가 0 이하인 경우 (완료 가능한 상태)
+    const canCompleteCurrentInvestigation = actualObject.isInInspectation && 
+                                          actualObject.remainingQuestions !== null && 
+                                          actualObject.remainingQuestions <= 0;
+    
+    return isCompleted || hasCompletedInvestigation || canCompleteCurrentInvestigation;
   };
 
   // 클릭 가능한 요소 상호작용 (수정)
@@ -1375,6 +1347,7 @@ const GamePage = () => {
             onClose={handleCloseChatBox}
             onActCountDecrease={handleActCountDecrease}
             currentActCount={actCount}
+            onInvestigationUpdate={handleInvestigationUpdate}
           />
         </ChatArea>
         {/* 오버레이 객체 정보 인터페이스 */}
@@ -1386,12 +1359,10 @@ const GamePage = () => {
             onClueAdded={handleClueAdded}
             currentActCount={actCount}
             playthroughId={playthroughId}
-            investigationState={currentObject ? investigationStates[currentObject.id] : null}
             onStartInvestigation={() => handleStartInvestigation(currentObject)}
             onCompleteInvestigation={() => handleCompleteInvestigation(currentObject)}
             canCompleteInvestigation={currentObject ? canCompleteInvestigation(currentObject.id) : false}
             canAccessDetail={currentObject ? canAccessDetail(currentObject.id) : false}
-            investigationProgress={currentObject ? getInvestigationProgress(currentObject.id) : 0}
           />
         </ChatArea>
       </GameScreen>
