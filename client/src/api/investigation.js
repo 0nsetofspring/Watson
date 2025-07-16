@@ -80,6 +80,34 @@ export const getInvestigationStatusApi = async (playthroughId, token) => {
 };
 
 /**
+ * 조사 중인 객체에 질문하여 remainingQuestions 감소 API
+ * @param {number} objectId - 질문할 객체 ID
+ * @param {number} playthroughId - 플레이스루 ID
+ * @param {string} token - 인증 토큰
+ * @returns {Promise} API 응답
+ */
+export const submitQuestionApi = async (objectId, playthroughId, token) => {
+  const response = await fetch(`${API_BASE_URL}/api/scenario/investigation/question`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`,
+    },
+    body: JSON.stringify({
+      objectId: objectId,
+      playthroughId: playthroughId,
+    }),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData.error || '질문 처리에 실패했습니다.');
+  }
+
+  return response.json();
+};
+
+/**
  * 현재 방의 최신 객체 정보 가져오기 API
  * @param {number} playthroughId - 플레이스루 ID
  * @param {number} roomId - 방 ID

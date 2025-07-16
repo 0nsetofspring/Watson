@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import InvestigationConfirmModal from './InvestigationConfirmModal';
 
@@ -198,15 +198,40 @@ const ObjectInfo = ({
   onClueAdded, 
   currentActCount, 
   playthroughId,
-  investigationState,
   onStartInvestigation,
   onCompleteInvestigation,
   canCompleteInvestigation,
-  canAccessDetail,
-  investigationProgress
+  canAccessDetail
 }) => {
   const [showDetailPanel, setShowDetailPanel] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [localInvestigationState, setLocalInvestigationState] = useState({
+    hasStarted: false,
+    isCompleted: false,
+    isInProgress: false
+  });
+
+  // objectData가 변경될 때마다 로컬 상태 업데이트
+  useEffect(() => {
+    if (objectData) {
+      const hasStartedInvestigation = objectData?.isInInspectation || false;
+      const remainingQuestions = objectData?.remainingQuestions;
+      const requiredQuestions = objectData?.requiredQuestions || 3;
+      
+      // 조사가 완료되었는지 확인 (더 이상 조사 중이 아니면서 한 번이라도 조사된 경우)
+      const isCompleted = !hasStartedInvestigation && remainingQuestions !== null && remainingQuestions !== requiredQuestions;
+      
+      // 조사가 한 번이라도 시작되었는지 확인 (조사 중이거나 완료되었거나 remainingQuestions가 초기값과 다른 경우)
+      const hasEverStarted = hasStartedInvestigation || isCompleted || 
+                           (remainingQuestions !== null && remainingQuestions !== requiredQuestions);
+
+      setLocalInvestigationState({
+        hasStarted: hasEverStarted,
+        isCompleted: isCompleted,
+        isInProgress: hasStartedInvestigation
+      });
+    }
+  }, [objectData]);
 
   if (!objectData) return null;
 
@@ -217,6 +242,12 @@ const ObjectInfo = ({
       const success = await onCompleteInvestigation();
       if (success) {
         setShowDetailPanel(true);
+        // 로컬 상태 즉시 업데이트
+        setLocalInvestigationState(prev => ({
+          ...prev,
+          isCompleted: true,
+          isInProgress: false
+        }));
       }
       return;
     }
@@ -228,7 +259,7 @@ const ObjectInfo = ({
     }
 
     // 이미 조사가 시작된 경우 바로 패널 열기
-    if (hasEverStarted) {
+    if (localInvestigationState.hasStarted) {
       setShowDetailPanel(true);
       return;
     }
@@ -246,6 +277,12 @@ const ObjectInfo = ({
       const success = await onStartInvestigation();
       if (success) {
         setShowDetailPanel(true);
+        // 로컬 상태 즉시 업데이트
+        setLocalInvestigationState(prev => ({
+          ...prev,
+          hasStarted: true,
+          isInProgress: true
+        }));
       }
       // 실패 시 알림은 GamePage에서 처리되므로 여기서는 아무것도 하지 않음
     }
@@ -265,7 +302,12 @@ const ObjectInfo = ({
   const handleCompleteInvestigation = async () => {
     const success = await onCompleteInvestigation();
     if (success) {
-      // 성공 시 필요한 UI 업데이트가 있다면 여기에
+      // 로컬 상태 즉시 업데이트
+      setLocalInvestigationState(prev => ({
+        ...prev,
+        isCompleted: true,
+        isInProgress: false
+      }));
     }
   };
 
@@ -274,44 +316,60 @@ const ObjectInfo = ({
     return objectData.data || '상세 정보가 없습니다.';
   };
 
-  // 조사 상태 정보 (GamePage에서 전달받은 값 사용)
-  const requiredQuestions = investigationState?.requiredQuestions || 3;
-  const isCompleted = investigationState?.isCompleted || false;
+  // 조사 상태 정보 (서버 기반 remainingQuestions 사용)
+  const requiredQuestions = objectData?.requiredQuestions || 3;
+  const remainingQuestions = objectData?.remainingQuestions;
   
-  // 조사가 진행 중인지 확인 (한 번이라도 시작되었고 아직 완료되지 않은 경우)
-  const hasStartedInvestigation = investigationState?.investigationStartCount !== null && !isCompleted;
+  // 조사가 완료되었는지 확인 (더 이상 조사 중이 아니면서 한 번이라도 조사된 경우)
+  const isCompleted = !objectData?.isInInspectation && remainingQuestions !== null && remainingQuestions !== requiredQuestions;
   
-  // 조사가 한 번이라도 시작되었는지 확인 (완료된 것 포함)
-  const hasEverStarted = investigationState?.investigationStartCount !== null || isCompleted;
+  // 조사가 진행 중인지 확인 (현재 조사 중인 상태)
+  const hasStartedInvestigation = objectData?.isInInspectation || false;
+  
+  // 조사가 한 번이라도 시작되었는지 확인 (조사 중이거나 완료되었거나 remainingQuestions가 초기값과 다른 경우)
+  const hasEverStarted = hasStartedInvestigation || isCompleted || 
+                        (remainingQuestions !== null && remainingQuestions !== requiredQuestions);
+
+  // 조사 진행도 계산 (서버 기반)
+  const currentProgress = remainingQuestions !== null ? requiredQuestions - remainingQuestions : 0;
+  
+  // 조사 완료 여부 확인 (remainingQuestions가 0 이하이거나 null인 경우)
+  const isInvestigationComplete = remainingQuestions !== null && remainingQuestions <= 0;
 
   // 디버깅을 위한 로그
   console.log(`🔍 ObjectInfo 상태 - ${objectData?.name}:`, {
-    investigationState,
+    objectData: {
+      requiredQuestions: objectData?.requiredQuestions,
+      remainingQuestions: objectData?.remainingQuestions,
+      isInInspectation: objectData?.isInInspectation
+    },
     hasStartedInvestigation,
     hasEverStarted,
     isCompleted,
     canCompleteInvestigation,
     canAccessDetail,
-    investigationProgress,
+    currentProgress,
     requiredQuestions,
-    '진행상황': `${investigationProgress}/${requiredQuestions}`,
+    localInvestigationState,
+    '진행상황': `${currentProgress}/${requiredQuestions}`,
     '조건체크': {
       '완료됨': isCompleted,
-      '진행도충족': investigationProgress >= requiredQuestions,
-      '조사시작됨': investigationState?.investigationStartCount !== null,
-      '활성상태': investigationState?.isInvestigationActive
+      '진행도충족': currentProgress >= requiredQuestions,
+      '조사중': hasStartedInvestigation,
+      '한번이라도시작': hasEverStarted
     }
   });
 
-  // 버튼 텍스트 결정
+  // 버튼 텍스트 결정 (로컬 상태와 서버 상태 모두 고려)
   const getInspectButtonText = () => {
-    if (isCompleted) {
+    // 로컬 상태가 우선 (즉시 반영을 위해)
+    if (localInvestigationState.isCompleted) {
       return "상세 정보 보기";
-    } else if (canCompleteInvestigation) {
+    } else if (canCompleteInvestigation || isInvestigationComplete) {
       return "조사 완료하기";
     } else if (canAccessDetail) {
       return "상세 정보 보기";
-    } else if (hasStartedInvestigation) {
+    } else if (localInvestigationState.isInProgress || hasStartedInvestigation) {
       return "조사 진행 상황 보기";
     } else {
       return "조사 시작하기";
@@ -359,9 +417,9 @@ const ObjectInfo = ({
             {hasStartedInvestigation ? (
               <>
                 <RequiredQuestionsText>
-                  (이 단서 진행: {investigationProgress}/{requiredQuestions})
+                  (이 단서 진행: {currentProgress}/{requiredQuestions})
                 </RequiredQuestionsText>
-                {canCompleteInvestigation && (
+                {(canCompleteInvestigation || isInvestigationComplete) && (
                   <InspectButton onClick={handleCompleteInvestigation}>
                     조사 완료하기
                   </InspectButton>

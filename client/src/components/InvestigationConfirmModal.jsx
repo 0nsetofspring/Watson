@@ -33,10 +33,12 @@ const ModalContainer = styled.div`
   padding: 40px;
   max-width: 480px;
   width: 90%;
-  max-height: 400px;
+  max-height: 80vh;
   font-family: 'Crimson Text', serif;
   position: relative;
   animation: modalSlideIn 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  display: flex;
+  flex-direction: column;
   
   @keyframes modalSlideIn {
     from { 
@@ -89,6 +91,10 @@ const ModalTitle = styled.h2`
 const MessageContainer = styled.div`
   text-align: center;
   margin-bottom: 35px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 `;
 
 const QuestionCountText = styled.div`
@@ -121,7 +127,9 @@ const ButtonContainer = styled.div`
   display: flex;
   gap: 16px;
   justify-content: center;
-  margin-bottom: 8px;
+  margin-top: auto;
+  padding-top: 20px;
+  flex-shrink: 0;
 `;
 
 const ConfirmButton = styled.button`
@@ -214,7 +222,7 @@ const InvestigationConfirmModal = ({
         
         <MessageContainer>
           <QuestionCountText>
-            이 조사는 {requiredQuestions}번의 질의응답이 소요됩니다.
+            해당 조사는 NPC와 {requiredQuestions}번의 질의응답 진행 후 확인 가능합니다.
           </QuestionCountText>
           <ConfirmText>
             "{objectName}"에 대한 조사를 시작하시겠습니까?

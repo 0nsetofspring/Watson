@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { sendChatMessage, getChatHistory, toggleChatHighlight } from '../api/game';
+import { submitQuestionApi, getInvestigationStatusApi } from '../api/investigation';
 import { useAuth } from '../context/AuthContext';
 import styled from 'styled-components';
 
@@ -419,6 +420,7 @@ const TextInput = styled.input`
   border: 2px solid #8b4513;
   border-radius: 4px;
   padding: 12px 20px;
+  maxLength: ${props => props.$maxLength || 50};
   font-size: 14px;
   font-family: 'Crimson Text', serif;
   outline: none;
@@ -508,7 +510,22 @@ const QuestionCostText = styled.div`
   opacity: 0.8;
 `;
 
-const ChatBox = ({ playthroughId, currentInteraction, onClose, onActCountDecrease, currentActCount }) => {
+// 글자 수 표시기 스타일
+const CharacterCount = styled.div`
+  font-size: 11px;
+  color: ${props => {
+    if (props.$isNearLimit) return '#e67e22';
+    if (props.$isAtLimit) return '#e74c3c';
+    return '#b8860b';
+  }};
+  font-family: 'Crimson Text', serif;
+  text-align: right;
+  margin-top: 4px;
+  opacity: 0.8;
+  font-weight: ${props => props.$isAtLimit ? 'bold' : 'normal'};
+`;
+
+const ChatBox = ({ playthroughId, currentInteraction, onClose, onActCountDecrease, currentActCount, onInvestigationUpdate }) => {
   const { token } = useAuth();
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
@@ -517,6 +534,9 @@ const ChatBox = ({ playthroughId, currentInteraction, onClose, onActCountDecreas
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+  
+  // 글자 수 제한 상수
+  const MAX_CHARACTERS = 50;
   
   // currentInteraction 정보를 로컬 상태로 저장 (닫기 애니메이션 중에도 유지하기 위함)
   const [localInteraction, setLocalInteraction] = useState(null);
@@ -650,6 +670,15 @@ const ChatBox = ({ playthroughId, currentInteraction, onClose, onActCountDecreas
     }
   }, [isLoading, currentActCount]);
 
+  // 입력 처리 함수 (글자 수 제한 적용)
+  const handleInputChange = (e) => {
+    const value = e.target.value;
+    if (value.length <= MAX_CHARACTERS) {
+      setInput(value);
+    }
+    // 50자를 초과하면 입력을 차단 (브라우저의 maxLength도 있지만 추가 보안)
+  };
+
   const toggleHighlight = async (chatId) => {
     try {
       // 현재 메시지의 하이라이트 상태 찾기
@@ -699,6 +728,24 @@ const ChatBox = ({ playthroughId, currentInteraction, onClose, onActCountDecreas
     try {
       const npcMessage = await sendChatMessage(playthroughId, currentInput, token, currentInteraction?.npcId);
       setMessages(prev => [...prev, npcMessage]);
+      
+      // 조사 중인 객체가 있는지 확인하고 질문 처리
+      try {
+        const investigationStatus = await getInvestigationStatusApi(playthroughId, token);
+        if (investigationStatus.hasActiveInvestigation && investigationStatus.activeObject) {
+          console.log('활성 조사 객체 발견, 질문 처리 중:', investigationStatus.activeObject.name);
+          const questionResult = await submitQuestionApi(investigationStatus.activeObject.id, playthroughId, token);
+          console.log('조사 객체 질문 처리 완료:', questionResult);
+          
+          // 조사 질문 처리 성공 시 GamePage에 알림
+          if (onInvestigationUpdate) {
+            onInvestigationUpdate();
+          }
+        }
+      } catch (investigationError) {
+        console.error('조사 질문 처리 중 오류:', investigationError);
+        // 조사 오류는 조용히 처리 (채팅 자체는 성공했으므로)
+      }
       
       // 메시지 전송 성공 시 행동력 감소
       console.log('ChatBox: 메시지 전송 성공, onActCountDecrease 호출 시작');
@@ -803,14 +850,23 @@ const ChatBox = ({ playthroughId, currentInteraction, onClose, onActCountDecreas
         </MessagesArea>
         
         <InputArea onSubmit={handleSend}>
-          <TextInput
-            ref={inputRef}
-            type="text"
-            value={input}
-            onChange={e => setInput(e.target.value)}
-            disabled={isLoading || currentActCount <= 0}
-            placeholder={currentActCount <= 0 ? "행동력이 부족합니다..." : "메시지를 입력하세요..."}
-          />
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+            <TextInput
+              ref={inputRef}
+              type="text"
+              value={input}
+              onChange={handleInputChange}
+              $maxLength={MAX_CHARACTERS}
+              disabled={isLoading || currentActCount <= 0}
+              placeholder={currentActCount <= 0 ? "행동력이 부족합니다..." : "메시지를 입력하세요..."}
+            />
+            <CharacterCount 
+              $isNearLimit={input.length >= MAX_CHARACTERS * 0.8}
+              $isAtLimit={input.length >= MAX_CHARACTERS}
+            >
+              {input.length}/{MAX_CHARACTERS}
+            </CharacterCount>
+          </div>
           <SendButton type="submit" disabled={isLoading || !input.trim() || currentActCount <= 0}>
             전송
           </SendButton>
